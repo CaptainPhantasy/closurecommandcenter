@@ -1,0 +1,188 @@
+"""Tests for the Agent Execution module (ATerm source copy).
+
+The agent execution UI is a Kernel-owned module copied from ATerm source.
+These tests verify:
+  - The tab is registered in the Kernel nav
+  - The native mount div is present (no iframe)
+  - The built frontend is served as a static mount
+  - The fallback markup is present for when the build is missing
+  - The source manifest is valid
+  - The ATerm source was properly copied
+  - The original ATerm repo was not modified
+"""
+
+from __future__ import annotations
+
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+import pytest
+from fastapi.testclient import TestClient
+
+ROOT = Path(__file__).parent.parent
+sys.path.insert(0, str(ROOT))
+
+import server  # noqa: E402
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _ensure_server_up():  # type: ignore[no-redef]
+    yield
+
+
+@pytest.fixture
+def client() -> TestClient:
+    return TestClient(server.app)
+
+
+def test_index_html_has_agent_execution_tab(client: TestClient) -> None:
+    body = client.get("/").text
+    assert "Agent Execution" in body
+    assert 'id="cb-tab-agent-exec"' in body
+    assert 'id="cb-page-agent-exec"' in body
+
+
+def test_index_html_native_mount_present(client: TestClient) -> None:
+    """The native mount div must exist for the React app to render into."""
+    body = client.get("/").text
+    assert 'id="aterm-root"' in body
+    assert "/agent-execution/" in body
+
+
+def test_index_html_native_loader_js_present(client: TestClient) -> None:
+    """The JS loader for the native integration must be in the page."""
+    body = client.get("/").text
+    assert "loadAgentExecNative" in body
+    assert "aterm-root" in body
+
+
+def test_index_html_includes_fallback_markup(client: TestClient) -> None:
+    body = client.get("/").text
+    assert 'id="agent-exec-fallback"' in body
+    assert "Agent Execution is not available" in body
+
+
+def test_index_html_has_reload_button_and_fullscreen_link(
+    client: TestClient,
+) -> None:
+    body = client.get("/").text
+    assert 'id="agent-exec-reload-btn"' in body
+    assert 'href="/agent-execution/"' in body
+
+
+def test_index_html_native_loader_js_present_probe(client: TestClient) -> None:
+    """The native loader function must be present (replaces old probe pattern)."""
+    body = client.get("/").text
+    assert "loadAgentExecNative" in body
+
+
+def test_index_html_tab_in_page_map(client: TestClient) -> None:
+    """The agent-exec page must be registered in the JS page map."""
+    body = client.get("/").text
+    assert '"agent-exec"' in body
+    assert ' $("cb-page-agent-exec")' in body.replace('"', '"')
+
+
+def test_agent_execution_static_mount(client: TestClient) -> None:
+    """The built frontend must be served at /agent-execution/."""
+    r = client.get("/agent-execution/")
+    assert r.status_code == 200
+    assert "html" in r.headers.get("content-type", "").lower()
+
+
+def test_agent_execution_source_manifest_exists() -> None:
+    """The source manifest must be present with copy metadata."""
+    manifest = ROOT / "modules" / "agent-execution" / "source-manifest.json"
+    assert manifest.is_file(), f"missing {manifest}"
+    data = json.loads(manifest.read_text())
+    assert data["capability"] == "agent-execution"
+    assert data["source_name"] == "ATerm"
+    assert data["copied_at"] is not None
+    assert data["source_revision"] is not None
+
+
+def test_agent_execution_dist_built() -> None:
+    """The Vite-built frontend must exist in the module dist/ui/ directory."""
+    dist_dir = ROOT / "modules" / "agent-execution" / "source" / "dist" / "ui"
+    assert dist_dir.is_dir(), f"missing dist/ui/ at {dist_dir}"
+    assert (dist_dir / "index.html").is_file(), "missing dist/ui/index.html"
+    assert (dist_dir / "assets").is_dir(), "missing dist/ui/assets/"
+
+
+def test_agent_execution_source_copied() -> None:
+    """The ATerm source must be present in modules/agent-execution/source/."""
+    source_dir = ROOT / "modules" / "agent-execution" / "source"
+    # Backend
+    assert (source_dir / "src" / "server.ts").is_file(), "missing src/server.ts"
+    assert (source_dir / "src" / "pty" / "pool.ts").is_file(), "missing src/pty/pool.ts"
+    assert (source_dir / "src" / "session" / "manager.ts").is_file(), (
+        "missing src/session/manager.ts"
+    )
+    # Frontend
+    assert (source_dir / "ui" / "src" / "App.tsx").is_file(), "missing ui/src/App.tsx"
+    assert (source_dir / "ui" / "src" / "components" / "Terminal.tsx").is_file(), (
+        "missing ui/src/components/Terminal.tsx"
+    )
+    # Config
+    assert (source_dir / "package.json").is_file(), "missing package.json"
+    assert (source_dir / "ui" / "vite.config.ts").is_file(), "missing ui/vite.config.ts"
+
+
+def test_original_aterm_untouched() -> None:
+    """Verify the original ATerm source was not modified by this project.
+
+    The original repo has pre-existing uncommitted changes (it was dirty
+    at copy time). We snapshot its diff-stat MD5 and verify it hasn't
+    changed further. We also verify our server.py matches the original.
+    """
+    original = Path("/Volumes/SanDisk1Tb/ATerm")
+    if not original.is_dir():
+        pytest.skip("ATerm source not accessible on this machine")
+
+    # Check that our server.py is a byte-for-byte copy of the original
+    import hashlib
+
+    our_server = ROOT / "server.py"
+    orig_server = original.parent.parent / "Floyds_Unified_Command_Kernal" / "server.py"
+    if orig_server.is_file() and our_server.is_file():
+        our_md5 = hashlib.md5(our_server.read_bytes()).hexdigest()
+        orig_md5 = hashlib.md5(orig_server.read_bytes()).hexdigest()
+        assert our_md5 == orig_md5, (
+            f"server.py diverged from original: {our_md5} != {orig_md5}"
+        )
+
+    # Verify our copy hasn't written anything back to the original
+    result = subprocess.run(
+        ["git", "diff", "--stat"],
+        capture_output=True,
+        text=True,
+        cwd=str(original),
+    )
+    # Original was already dirty at copy time (known snapshot).
+    # Just verify git diff output is stable (not growing unexpectedly).
+    # Pre-existing snapshot: 12 files changed, 424 insertions(+), 82 deletions(-)
+    total_lines = result.stdout.strip().split("\n")[-1] if result.stdout.strip() else ""
+    assert "424 insertions" in total_lines, (
+        f"Original ATerm diff changed from known snapshot:\n{total_lines}"
+    )
+
+
+def test_agent_execution_assets_load(client: TestClient) -> None:
+    """Built JS/CSS assets must be loadable from the /agent-execution/ mount."""
+    import re
+
+    html = client.get("/agent-execution/").text
+    js_files = re.findall(r'src="(/agent-execution/assets/[^"]+\.js)"', html)
+    css_files = re.findall(
+        r'href="(/agent-execution/assets/[^"]+\.css)"',
+        html,
+    )
+    assert js_files, "no JS assets found in agent-execution dist"
+    assert css_files, "no CSS assets found in agent-execution dist"
+    for path in js_files + css_files:
+        r = client.get(path)
+        assert r.status_code == 200, f"{path} returned {r.status_code}"
+        assert len(r.content) > 0, f"{path} is empty"
+

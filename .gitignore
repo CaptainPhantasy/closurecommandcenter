@@ -1,0 +1,58 @@
+# OS files
+.DS_Store
+
+# Local agent/runtime state
+.claude/
+.harness/
+.omp/
+.floyd/
+.agents/
+.supercache
+**/.floyd/
+
+# Python caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# JavaScript dependencies and builds
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+build/
+**/build/
+.vite/
+coverage/
+.cache/
+*.tsbuildinfo
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Logs and runtime artifacts
+*.log
+*.sqlite
+*.sqlite3
+*.db
+*.db-shm
+*.db-wal
+*.tmp
+*.bak
+*.backup
+
+# Test/browser artifacts
+test-results/
+playwright-report/
+test-screenshots/
+**/tests/artifacts/
+*.png.tmp
+*.webm
+*.mp4
+
+# Generated local development binaries
+modules/agent-browser/source/tools/dev/browseros-dev
+

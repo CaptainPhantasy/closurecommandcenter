@@ -1,0 +1,203 @@
+"""
+Tests for buddy-telemetry schema and normalizer.
+
+Covers: all canonical state values, edge cases, conflicting source priority,
+malformed input, and provenance attachment.
+"""
+
+import time
+import sys
+import os
+import importlib.util
+
+PROJECT_ROOT = os.path.join(os.path.dirname(__file__), "..")
+
+
+def _load_module(name: str, path: str):
+    spec = importlib.util.spec_from_file_location(name, os.path.join(PROJECT_ROOT, path))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+_schema = _load_module("schema", "modules/buddy-telemetry/schema.py")
+_normalizer = _load_module("normalizer", "modules/buddy-telemetry/normalizer.py")
+
+AgentState = _schema.AgentState
+Alert = _schema.Alert
+HealthGrade = _schema.HealthGrade
+MonitorEvent = _schema.MonitorEvent
+EventType = _schema.EventType
+RecommendedAction = _schema.RecommendedAction
+ResourceSnapshot = _schema.ResourceSnapshot
+SessionState = _schema.SessionState
+SessionStatus = _schema.SessionStatus
+SourceRef = _schema.SourceRef
+normalize_agent = _normalizer.normalize_agent
+normalize_agents = _normalizer.normalize_agents
+normalize_aterm_session = _normalizer.normalize_aterm_session
+normalize_aterm_status = _normalizer.normalize_aterm_status
+normalize_performance = _normalizer.normalize_performance
+normalize_session_status = _normalizer.normalize_session_status
+
+def test_session_status_all_known():
+    """Every canonical SessionStatus value round-trips."""
+    for status in SessionStatus:
+        result = normalize_session_status(status.value)
+        assert result == status, f"{status.value} → {result}"
+
+
+def test_session_status_aliases():
+    assert normalize_session_status("running") == SessionStatus.BUSY
+    assert normalize_session_status("waiting") == SessionStatus.WAITING_FOR_INPUT
+    assert normalize_session_status("stopped") == SessionStatus.STALE
+
+
+def test_session_status_unknown():
+    assert normalize_session_status("flibbertigibbet") == SessionStatus.UNKNOWN
+    assert normalize_session_status("") == SessionStatus.UNKNOWN
+
+
+def test_normalize_aterm_session_happy():
+    raw = {
+        "id": "sess-1",
+        "name": "build-agent",
+        "status": "ready",
+        "pid": 12345,
+        "uptime_seconds": 300.0,
+    }
+    result = normalize_aterm_session(raw)
+    assert result.session_id == "sess-1"
+    assert result.name == "build-agent"
+    assert result.status == SessionStatus.READY
+    assert result.pid == 12345
+    assert result.uptime_seconds == 300.0
+    assert result.source is not None
+    assert result.source.source == "/api/aterm/status"
+
+
+def test_normalize_aterm_session_malformed():
+    """Missing fields fall back to defaults, not exceptions."""
+    raw = {}
+    result = normalize_aterm_session(raw)
+    assert result.session_id == "unknown"
+    assert result.status == SessionStatus.UNKNOWN
+    assert result.agent_count == 0
+    assert result.source is not None
+
+
+def test_normalize_aterm_status_full():
+    raw = {
+        "ok": True,
+        "sessions": [
+            {"id": "s1", "name": "a", "status": "busy"},
+            {"id": "s2", "name": "b", "status": "error"},
+        ],
+    }
+    results = normalize_aterm_status(raw)
+    assert len(results) == 2
+    assert results[0].status == SessionStatus.BUSY
+    assert results[1].status == SessionStatus.ERROR
+
+
+def test_normalize_agent():
+    raw = {
+        "id": "ag-1",
+        "name": "worker",
+        "running": True,
+        "command": "python3 worker.py",
+        "tags": ["auto", "build"],
+    }
+    result = normalize_agent(raw)
+    assert result.agent_id == "ag-1"
+    assert result.running is True
+    assert "auto" in result.tags
+    assert result.source.source == "/api/agents"
+
+
+def test_normalize_agent_missing_fields():
+    result = normalize_agent({"id": "x"})
+    assert result.running is False
+    assert result.tags == []
+    assert result.command == ""
+
+
+def test_normalize_agents_list():
+    raw = [{"id": "1"}, {"id": "2"}]
+    results = normalize_agents(raw)
+    assert len(results) == 2
+    assert all(r.source.source == "/api/agents" for r in results)
+
+
+def test_normalize_performance():
+    raw = {
+        "cpu_percent": 45.2,
+        "memory_mb": 512.0,
+        "running_agents": 3,
+    }
+    result = normalize_performance(raw)
+    assert result.cpu_percent == 45.2
+    assert result.memory_mb == 512.0
+    assert result.running_agents == 3
+    assert result.source.source == "/api/performance"
+
+
+def test_normalize_performance_malformed():
+    result = normalize_performance({})
+    assert result.cpu_percent == 0.0
+    assert result.memory_mb == 0.0
+    assert result.running_agents == 0
+
+
+def test_source_ref_immutable():
+    ref = SourceRef(source="/api/test", method="GET", timestamp=1.0)
+    try:
+        ref.source = "mutated"  # type: ignore
+        assert False, "Should be frozen"
+    except AttributeError:
+        pass
+
+
+def test_alert_requires_source():
+    ref = SourceRef(source="/api/test", method="GET", timestamp=time.time())
+    alert = Alert(alert_id="a1", severity=HealthGrade.ERROR, message="test", source=ref)
+    assert alert.source.source == "/api/test"
+    assert alert.needs_human is False
+
+
+def test_recommendation_requires_approval_v1():
+    ref = SourceRef(source="/api/test", method="GET", timestamp=time.time())
+    rec = RecommendedAction(
+        action_id="r1", description="restart", rationale="stale", source=ref
+    )
+    assert rec.requires_approval is True  # V1: always True
+
+
+def test_monitor_event_envelope():
+    ref = SourceRef(source="/api/test", method="GET", timestamp=time.time())
+    session = SessionState(session_id="s1", name="test", status=SessionStatus.READY, source=ref)
+    event = MonitorEvent(
+        event_type=EventType.SESSION_UPDATE,
+        payload=session,
+        source=ref,
+        event_id="e1",
+    )
+    assert event.event_type == EventType.SESSION_UPDATE
+    assert event.payload.status == SessionStatus.READY
+
+
+if __name__ == "__main__":
+    # Run all test functions
+    test_functions = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
+    passed = 0
+    failed = 0
+    for fn in test_functions:
+        try:
+            fn()
+            passed += 1
+        except Exception as e:
+            print(f"FAIL: {fn.__name__}: {e}")
+            failed += 1
+    print(f"\n{passed} passed, {failed} failed, {passed + failed} total")
+    sys.exit(1 if failed else 0)
+

@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "gates": [
+    { "name": "python-install", "command": ["/bin/sh", "-c", "PYTHON_BIN=${PYTHON:-$(command -v python3.14 || command -v python3)}; test -n \"$PYTHON_BIN\" && \"$PYTHON_BIN\" -m venv .proofline-venv && .proofline-venv/bin/pip install -q -r requirements.txt -r requirements-dev.txt"], "required": true },
+    { "name": "workspace-editor-install", "command": ["npm", "--prefix", "modules/workspace-editor/source", "ci"], "required": true },
+    { "name": "workspace-editor-audit", "command": ["npm", "--prefix", "modules/workspace-editor/source", "audit", "--audit-level=high"], "required": true },
+    { "name": "workspace-editor-build", "command": ["npm", "--prefix", "modules/workspace-editor/source", "run", "build"], "required": true },
+    { "name": "python-tests", "command": [".proofline-venv/bin/python", "-m", "pytest", "-q"], "required": true },
+    { "name": "dashboard-install", "command": ["npm", "--prefix", "dashboard", "ci"], "required": true },
+    { "name": "dashboard-audit", "command": ["npm", "--prefix", "dashboard", "audit", "--audit-level=high"], "required": true },
+    { "name": "dashboard-tests", "command": ["npm", "--prefix", "dashboard", "test", "--", "--run"], "required": true },
+    { "name": "dashboard-build", "command": ["npm", "--prefix", "dashboard", "run", "build"], "required": true }
+  ],
+  "include": ["*.py", "*.md", "*.json", "*.html", "*.txt", "*.sh", "Makefile", "environment.example", ".gitignore", ".gitleaksignore", "dashboard/**", "docs/**", "modules/**", "scripts/**", "static/**", "tests/**"],
+  "deny": [".env", ".env.*", "*.pem", "*.key", "*.db", "*.sqlite*", "node_modules/**", "**/node_modules/**", "dist/**", "**/dist/**", "build/**", "**/build/**", ".venv/**", ".proofline-venv/**", ".git/**", ".planning/**", ".floyd/**", "**/.floyd/**", ".harness/**", ".claude/**", ".agents/**", ".omp/**", ".supercache", "SSOT/**", "Issues/**", "quarantine/**", "dogfood*/**", "data/**", "state.json", "agents.json"],
+  "baseBranch": "main",
+  "publish": true,
+  "allowLocalRemote": false
+}

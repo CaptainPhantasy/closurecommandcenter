@@ -1,0 +1,151 @@
+"""
+Tests for buddy-telemetry read-only adapter.
+
+Covers: successful fetch, unreachable Kernel (stale fallback),
+timeout behavior, and SourceRef provenance.
+"""
+
+import json
+import sys
+import os
+import time
+import importlib.util
+from http.server import HTTPServer, BaseHTTPRequestHandler
+import threading
+
+_here = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.join(_here, "..", "..")
+
+
+def _load_module(name, path):
+    spec = importlib.util.spec_from_file_location(name, os.path.join(PROJECT_ROOT, path))
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules.setdefault(name, mod)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+_schema = _load_module("schema", "modules/buddy-telemetry/schema.py")
+_norm = _load_module("norm", "modules/buddy-telemetry/normalizer.py")
+_adapter = _load_module("adapter", "modules/buddy-telemetry/adapter.py")
+
+SessionStatus = _schema.SessionStatus
+
+
+class _MockHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == "/api/aterm/status":
+            body = json.dumps({"ok": True, "sessions": [
+                {"id": "s1", "name": "test", "status": "ready", "pid": 1, "uptime_seconds": 10.0},
+                {"id": "s2", "name": "busy-one", "status": "busy"},
+            ]})
+        elif self.path == "/api/agents":
+            body = json.dumps([
+                {"id": "a1", "name": "worker", "running": True, "tags": ["auto"]},
+            ])
+        elif self.path == "/api/performance":
+            body = json.dumps({"cpu_percent": 33.0, "memory_mb": 256.0, "running_agents": 2})
+        elif self.path == "/api/health":
+            body = json.dumps({"status": "ok"})
+        else:
+            self.send_response(404)
+            self.end_headers()
+            return
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(body.encode())
+
+    def log_message(self, *args):
+        pass
+
+
+def _start_mock(port):
+    server = HTTPServer(("127.0.0.1", port), _MockHandler)
+    t = threading.Thread(target=server.serve_forever, daemon=True)
+    t.start()
+    return server
+
+
+def test_fetch_sessions_success():
+    port = 19876
+    srv = _start_mock(port)
+    try:
+        results = _adapter.fetch_sessions(port=port)
+        assert len(results) == 2
+        assert results[0].status == SessionStatus.READY
+        assert results[0].source.source == "/api/aterm/status"
+    finally:
+        srv.shutdown()
+
+
+def test_fetch_agents_success():
+    port = 19877
+    srv = _start_mock(port)
+    try:
+        results = _adapter.fetch_agents(port=port)
+        assert len(results) == 1
+        assert results[0].agent_id == "a1"
+        assert results[0].running is True
+    finally:
+        srv.shutdown()
+
+
+def test_fetch_performance_success():
+    port = 19878
+    srv = _start_mock(port)
+    try:
+        result = _adapter.fetch_performance(port=port)
+        assert result.cpu_percent == 33.0
+        assert result.running_agents == 2
+    finally:
+        srv.shutdown()
+
+
+def test_fetch_health_success():
+    port = 19879
+    srv = _start_mock(port)
+    try:
+        assert _adapter.fetch_health(port=port) is True
+    finally:
+        srv.shutdown()
+
+
+def test_fetch_sessions_unreachable():
+    results = _adapter.fetch_sessions(port=19999, timeout=0.5)
+    assert len(results) >= 1
+    assert all(s.status == SessionStatus.STALE for s in results)
+
+
+def test_fetch_agents_unreachable():
+    results = _adapter.fetch_agents(port=19999, timeout=0.5)
+    assert len(results) >= 1
+    assert results[0].agent_id == "_stale"
+
+
+def test_fetch_performance_unreachable():
+    result = _adapter.fetch_performance(port=19999, timeout=0.5)
+    assert result.cpu_percent == 0.0
+    assert result.source.source == "/api/performance"
+
+
+def test_fetch_health_unreachable():
+    assert _adapter.fetch_health(port=19999, timeout=0.5) is False
+
+
+if __name__ == "__main__":
+    test_functions = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
+    passed = 0
+    failed = 0
+    for fn in test_functions:
+        try:
+            fn()
+            passed += 1
+            print(f"  PASS: {fn.__name__}")
+        except Exception as e:
+            print(f"  FAIL: {fn.__name__}: {e}")
+            failed += 1
+    print(f"
+{passed} passed, {failed} failed, {passed + failed} total")
+    sys.exit(1 if failed else 0)
+

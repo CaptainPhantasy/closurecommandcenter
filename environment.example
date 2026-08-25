@@ -1,0 +1,16 @@
+# Optional model provider configuration. Store live values outside Git.
+ZAI_API_KEY=your-provider-key
+ZAI_BASE_URL=https://api.z.ai/api/paas/v4
+
+# Optional durable closure-state location (defaults to .floyd/closure-control.sqlite3).
+FLOYD_CLOSURE_DB=.floyd/closure-control.sqlite3
+
+# Optional remote mutation authority. Without this, closure writes are loopback-only.
+FLOYD_CLOSURE_TOKEN=replace-with-a-random-local-secret
+
+# Required with remote mutation authority. Tokens must be unique; the claimed
+# body identity must match a principal with the route's role.
+FLOYD_CLOSURE_PRINCIPALS_JSON={"planner":{"token":"replace-proposer","roles":["proposer"]},"ratifier":{"token":"replace-ratifier","roles":["ratifier"]},"worker":{"token":"replace-worker","roles":["worker"]},"verifier":{"token":"replace-verifier","roles":["verifier"]},"adapter":{"token":"replace-adapter","roles":["adapter"]},"operator":{"token":"replace-operator","roles":["operator"]}}
+
+# Required for approval-bearing API calls and UNKNOWN-effect reconciliation.
+FLOYD_CLOSURE_APPROVAL_TOKEN=replace-with-a-separate-random-secret

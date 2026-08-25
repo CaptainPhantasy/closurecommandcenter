@@ -1,0 +1,370 @@
+"""Real human-driven UI workflows. Each test uses keyboard + mouse and is ≥10 steps.
+
+These exercise the three workflows TCC must serve flawlessly for daily use:
+  1. Use a floyd terminal end-to-end (open, type, search, download).
+  2. Add a new agent, run a sanity command in it, delete it.
+  3. Bounce two floyd terminals, lay them out side-by-side, broadcast a command to both.
+
+Run:
+    pytest tests/test_workflows_ui.py -v
+    HEADED=1 pytest tests/test_workflows_ui.py -v   # watch a real Chromium do the work
+"""
+
+from __future__ import annotations
+
+import os
+import time
+import uuid
+
+import pytest
+from playwright.sync_api import Page, sync_playwright, expect
+
+pytestmark = pytest.mark.live_server
+
+from _helpers import base_url, find_floyd_agent, list_agents, ARTIFACTS_DIR
+
+
+# ---- Browser fixtures -------------------------------------------------------
+
+
+@pytest.fixture(scope="module")
+def browser():
+    headed = os.environ.get("HEADED", "0") == "1"
+    with sync_playwright() as pw:
+        b = pw.chromium.launch(headless=not headed, slow_mo=50 if headed else 0)
+        yield b
+        b.close()
+
+
+@pytest.fixture
+def page(browser, artifacts_dir):
+    ctx = browser.new_context(
+        viewport={"width": 1440, "height": 900},
+        accept_downloads=True,
+    )
+    p = ctx.new_page()
+    console_log_path = os.path.join(artifacts_dir, "console.log")
+    log_handle = open(console_log_path, "w")
+    p.on(
+        "console",
+        lambda msg: log_handle.write(f"[{msg.type}] {msg.text}\n"),
+    )
+    p.on("pageerror", lambda e: log_handle.write(f"[pageerror] {e}\n"))
+    yield p
+    log_handle.close()
+    try:
+        p.screenshot(path=os.path.join(artifacts_dir, "final.png"), full_page=True)
+        with open(os.path.join(artifacts_dir, "page.html"), "w") as fh:
+            fh.write(p.content())
+    except Exception:
+        pass
+    ctx.close()
+
+
+# ---- Helpers ----------------------------------------------------------------
+
+
+def _open_tcc(page: Page) -> None:
+    page.goto(base_url(), wait_until="networkidle")
+    # Sidebar agent list must populate before any workflow can proceed.
+    page.wait_for_selector("#agent-list .agent-list-item", state="visible", timeout=15_000)
+    # Dashboard defaults to Governance; terminal workflows must enter Terminals explicitly.
+    page.locator("#cb-tab-terminals").click()
+    page.wait_for_selector("#layout-select", state="visible", timeout=5_000)
+
+
+def _read_xterm_buffer(page: Page, agent_id: str) -> str:
+    """Return the user-visible terminal text via xterm.js's authoritative buffer API.
+
+    The DOM `.xterm-rows` element is unreliable across renderers (WebGL paints to a canvas,
+    DOM renderer is lazy). `window.tccGetTerminalText` reads from `term.buffer.active` — what
+    the user actually sees, regardless of renderer.
+    """
+    return page.evaluate(
+        "(id) => (window.tccGetTerminalText ? window.tccGetTerminalText(id) : '')",
+        agent_id,
+    )
+
+
+def _wait_for_buffer_contains(page: Page, agent_id: str, needle: str, timeout: float = 15.0) -> bool:
+    """Poll the xterm buffer until needle appears or timeout."""
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        if needle in _read_xterm_buffer(page, agent_id):
+            return True
+        time.sleep(0.2)
+    return False
+
+
+def _focus_terminal(page: Page, agent_id: str) -> None:
+    """Click into the terminal so subsequent keyboard.type goes to xterm."""
+    container = page.locator(f"#term-{agent_id}")
+    container.scroll_into_view_if_needed()
+    container.click()
+
+
+def _sidebar_item_by_name(page: Page, name: str):
+    """Stable selector for an agent sidebar item by canonical name (data attribute)."""
+    return page.locator(f'.agent-list-item[data-agent-name="{name}"]').first
+
+
+# ---- Workflow 1: Use a floyd terminal end-to-end ---------------------------
+
+
+def test_workflow_1_floyd_terminal_end_to_end(page: Page, artifacts_dir):
+    """Daily-driver workflow: open TCC, work inside FLOYD-STABILITY, search, download.
+
+    Steps (15, all keyboard or mouse):
+      1. Browser navigates to TCC
+      2. Page renders sidebar agent list
+      3. Click the FLOYD-STABILITY entry in the sidebar (focus it)
+      4. Wait for its terminal frame to appear in the grid
+      5. Wait for the green WebSocket dot (process spawned + connected)
+      6. Click into the terminal to give it focus
+      7. Wait for floyd's TUI to draw something (any output beyond connection)
+      8. Type a single character — must echo into the TUI input area
+      9. Send Ctrl+C to clear the input line
+      10. Mouse-hover the frame; click the search (⌕) action
+      11. Type a search query
+      12. Press Escape to close the search bar
+      13. Click the download (⬇) button — triggers GET /api/agents/{id}/scrollback
+      14. Wait for the download event
+      15. Verify the downloaded file has the expected name and is non-empty
+    """
+    floyd = find_floyd_agent("FLOYD-STABILITY")
+    if not floyd:
+        pytest.skip("FLOYD-STABILITY agent not configured")
+    agent_id = floyd["id"]
+
+    # Step 1–2: open TCC, sidebar populated
+    _open_tcc(page)
+
+    # Step 3: click the FLOYD-STABILITY sidebar entry (uses stable data-agent-name attr)
+    sidebar_item = _sidebar_item_by_name(page, "FLOYD-STABILITY")
+    expect(sidebar_item).to_be_visible(timeout=5_000)
+    sidebar_item.click()
+
+    # Step 4: terminal frame for that agent renders in the grid
+    frame_locator = page.locator(f"#frame-{agent_id}")
+    expect(frame_locator).to_be_visible(timeout=10_000)
+
+    # Step 5: WebSocket connects → dot turns green → process spawned
+    page.wait_for_selector(f"#dot-{agent_id}.connected", state="attached", timeout=20_000)
+
+    # Step 6: click into terminal to focus
+    _focus_terminal(page, agent_id)
+
+    # Step 7: wait for floyd TUI to draw — any non-empty buffer means the PTY round-trip works
+    deadline = time.time() + 15
+    initial_text = ""
+    while time.time() < deadline:
+        initial_text = _read_xterm_buffer(page, agent_id)
+        if len(initial_text.strip()) > 4:
+            break
+        time.sleep(0.3)
+    assert len(initial_text.strip()) > 4, f"floyd never produced any output: {initial_text!r}"
+
+    # Step 8: type a single character; it must reach the TUI (visible in the redraw)
+    page.keyboard.type("h", delay=30)
+    appeared = _wait_for_buffer_contains(page, agent_id, "h", timeout=5)
+    assert appeared, "typed character 'h' never appeared in terminal buffer"
+
+    # Step 9: send Ctrl+C to clear the input line
+    page.keyboard.press("Control+c")
+    time.sleep(0.4)
+
+    # Step 10: hover the frame and click the search action
+    frame_locator.hover()
+    page.locator(f"#frame-{agent_id} [data-action='search']").click()
+    search_input = page.locator(f"#searchinput-{agent_id}")
+    expect(search_input).to_be_visible(timeout=2_000)
+
+    # Step 11: type a search query
+    search_input.click()
+    page.keyboard.type("floyd", delay=20)
+
+    # Step 12: press Escape to close the search bar
+    page.keyboard.press("Escape")
+    expect(search_input).to_be_hidden(timeout=2_000)
+
+    # Step 13–14: trigger the scrollback download
+    with page.expect_download(timeout=10_000) as dl_info:
+        page.locator(f"#frame-{agent_id} [data-action='download']").click()
+    download = dl_info.value
+
+    # Step 15: validate filename + non-empty content
+    expected_name_root = floyd["name"].replace(" ", "_")
+    assert expected_name_root in download.suggested_filename
+    saved_to = os.path.join(artifacts_dir, "scrollback_download.txt")
+    download.save_as(saved_to)
+    assert os.path.getsize(saved_to) > 0, "scrollback download was empty"
+
+
+# ---- Workflow 2: Add → use → delete an agent --------------------------------
+
+
+def test_workflow_2_add_use_delete_agent(page: Page, artifacts_dir):
+    """Agent CRUD as a human does it.
+
+    Steps (16):
+      1. Open TCC
+      2. Wait for sidebar
+      3. Click into Name input
+      4. Type unique agent name
+      5. Tab into Directory input
+      6. Type "/tmp"
+      7. Tab into Command input
+      8. Type "bash"
+      9. Tab into Tags input
+      10. Type "smoke,ui"
+      11. Click "Add Agent" submit
+      12. Wait for the new agent to appear in the sidebar
+      13. Wait for its terminal frame, click into it
+      14. Type "echo HELLO_NEW_AGENT_<unique>" + Enter
+      15. Verify the unique marker appears in output
+      16. Click the delete (✕) button on the frame; verify it disappears from sidebar
+    """
+    unique = uuid.uuid4().hex[:8]
+    agent_name = f"smoke-ui-{unique}"
+    marker = f"HELLO_NEW_AGENT_{unique.upper()}"
+
+    # Steps 1–2
+    _open_tcc(page)
+
+    # Step 3: focus name field
+    page.locator("#agent-name").click()
+
+    # Step 4: type agent name
+    page.keyboard.type(agent_name, delay=15)
+
+    # Step 5–6: directory
+    page.keyboard.press("Tab")
+    page.keyboard.type("/tmp", delay=15)
+
+    # Step 7–8: command
+    page.keyboard.press("Tab")
+    page.keyboard.type("bash", delay=15)
+
+    # Step 9–10: tags
+    page.keyboard.press("Tab")
+    page.keyboard.type("smoke,ui", delay=15)
+
+    # Step 11: submit the form
+    page.locator('#add-agent-form button[type="submit"]').click()
+
+    # Step 12: sidebar entry appears (use stable data-agent-name selector)
+    sidebar_item = _sidebar_item_by_name(page, agent_name)
+    expect(sidebar_item).to_be_visible(timeout=10_000)
+
+    # Identify the new agent's id by hitting the API (deterministic)
+    matches = [a for a in list_agents() if a["name"] == agent_name]
+    assert matches, f"created agent {agent_name} not found via API"
+    agent_id = matches[0]["id"]
+
+    try:
+        # Step 13a: terminal frame appears
+        page.wait_for_selector(f"#frame-{agent_id}", state="visible", timeout=10_000)
+        # Wait for WebSocket connection
+        page.wait_for_selector(f"#dot-{agent_id}.connected", state="attached", timeout=15_000)
+        # Step 13b: click into terminal
+        _focus_terminal(page, agent_id)
+
+        # Step 14: type a command
+        page.keyboard.type(f"echo {marker}", delay=10)
+        page.keyboard.press("Enter")
+
+        # Step 15: marker appears in output
+        appeared = _wait_for_buffer_contains(page, agent_id, marker, timeout=10)
+        assert appeared, f"echo output containing {marker} never appeared"
+
+        # Step 16: delete via the frame button.
+        # Dialog handler MUST be registered before the click — otherwise Playwright
+        # dismisses the confirm() and the agent is never deleted.
+        page.on("dialog", lambda d: d.accept())
+        page.locator(f"#frame-{agent_id} [data-action='delete']").click()
+        page.wait_for_selector(f"#frame-{agent_id}", state="detached", timeout=10_000)
+        expect(
+            page.locator(f'.agent-list-item[data-agent-name="{agent_name}"]')
+        ).to_have_count(0, timeout=5_000)
+    finally:
+        # Cleanup safety net — if the test asserted out before delete
+        try:
+            import httpx
+            httpx.delete(f"{base_url()}/api/agents/{agent_id}", timeout=5)
+        except Exception:
+            pass
+
+
+# ---- Workflow 3: Two terminal panes remain isolated -------------------------
+
+
+def test_workflow_3_two_terminal_input_isolation(page: Page, artifacts_dir):
+    """Two visible terminals must not share keystrokes.
+
+    Steps (14):
+      1. Open TCC
+      2. Wait for sidebar
+      3. Identify two pinned floyd agents (FLOYD-STABILITY + one other)
+      4. Select the 2x1 layout
+      5. Verify grid layout class applied
+      6. Verify no global broadcast control is present
+      7. Restart FLOYD-STABILITY
+      8. Wait for its green dot to come back
+      9. Restart the second floyd frame
+      10. Wait for its green dot to come back
+      11. Snapshot both per-agent WebSocket send counters
+      12. Focus FLOYD-STABILITY terminal
+      13. Type five characters
+      14. Verify only the focused terminal's WebSocket send counter advanced
+    """
+    _open_tcc(page)
+
+    floyds = [a for a in list_agents() if "floyd" in (a.get("tags") or [])]
+    if len(floyds) < 2:
+        pytest.skip("need at least 2 floyd agents for isolation test")
+    primary = next((a for a in floyds if a["name"] == "FLOYD-STABILITY"), floyds[0])
+    secondary = next((a for a in floyds if a["id"] != primary["id"]), floyds[1])
+    pid = primary["id"]
+    sid = secondary["id"]
+
+    page.locator("#layout-select").select_option("2x1")
+    expect(page.locator("#grid-container.layout-2x1")).to_be_visible(timeout=2_000)
+    expect(page.locator("#broadcast-toggle")).to_have_count(0)
+
+    page.wait_for_selector(f"#frame-{pid}", state="visible", timeout=10_000)
+    page.locator(f"#frame-{pid}").hover()
+    page.locator(f"#frame-{pid} [data-action='restart']").click()
+    page.wait_for_selector(f"#dot-{pid}.connected", state="attached", timeout=20_000)
+
+    page.wait_for_selector(f"#frame-{sid}", state="visible", timeout=10_000)
+    page.locator(f"#frame-{sid}").hover()
+    page.locator(f"#frame-{sid} [data-action='restart']").click()
+    page.wait_for_selector(f"#dot-{sid}.connected", state="attached", timeout=20_000)
+
+    _focus_terminal(page, pid)
+    time.sleep(1.0)
+
+    pre_p = page.evaluate("(id) => window.tccGetWSStats(id)", pid)
+    pre_s = page.evaluate("(id) => window.tccGetWSStats(id)", sid)
+    assert pre_p and pre_s and pre_p["wsState"] == 1 and pre_s["wsState"] == 1, (
+        f"WSs must be open before isolation test — primary={pre_p}, secondary={pre_s}"
+    )
+
+    page.keyboard.type("zzzzz", delay=30)
+
+    deadline = time.time() + 5
+    delta_p = delta_s = 0
+    while time.time() < deadline:
+        post_p = page.evaluate("(id) => window.tccGetWSStats(id)", pid)
+        post_s = page.evaluate("(id) => window.tccGetWSStats(id)", sid)
+        delta_p = post_p["sentBytes"] - pre_p["sentBytes"]
+        delta_s = post_s["sentBytes"] - pre_s["sentBytes"]
+        if delta_p >= 5 and delta_s == 0:
+            break
+        time.sleep(0.2)
+    assert delta_p >= 5, f"focused terminal did not receive typed input — primary delta={delta_p}"
+    assert delta_s == 0, f"unfocused terminal received leaked input — secondary delta={delta_s}"
+
+    page.keyboard.press("Control+c")
+    time.sleep(0.3)
+

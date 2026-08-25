@@ -1,0 +1,68 @@
+{
+  "project_name": "floyd-harness",
+  "completion_percentage": 14,
+  "tech_stack": [
+    "Python",
+    "FastAPI",
+    "uvicorn",
+    "Pydantic"
+  ],
+  "complexity_score": 3,
+  "team_size_minimum": 3,
+  "go_to_market_timeline": "6+ months",
+  "industry_vertical": "Unknown",
+  "business_model": "Unknown",
+  "technical_debt": 0,
+  "scalability_needs": "low",
+  "target_users": "# Floyd AI Proxy Harness\n\n> **Your Personal AI Gateway** - A local proxy that wraps Z.ai GLM-5 with MCP tools, automatic DeepSeek fallback, and production-grade enhancements.\n\n---",
+  "key_features": [
+    "Table of Contents",
+    "What Is This?",
+    "Why You Need It",
+    "Features",
+    "Quick Start",
+    "How-To Guide",
+    "Onboarding Checklist",
+    "Architecture Deep Dive",
+    "API Reference",
+    "Configuration"
+  ],
+  "risks": [
+    "Most Beta-readiness gates unknown (6/7) — bootstrap incomplete"
+  ],
+  "gate_statuses": {
+    "build_run": "UNKNOWN",
+    "primary_journey": "UNKNOWN",
+    "automated_tests": "UNKNOWN",
+    "e2e_tests": "UNKNOWN",
+    "multi_min_human_sim": "UNKNOWN",
+    "security": "PASS",
+    "demo": "UNKNOWN"
+  },
+  "_evidence": {
+    "project_name": "basename of /Volumes/Storage/floyd-harness → floyd-harness",
+    "tech_stack": "requirements.txt present",
+    "complexity_score": "src_files=16, max_depth=3, deps=11 → rubric score 3/10",
+    "gate_statuses": ".gitignore covers .env → security=PASS (presence-only)",
+    "completion_percentage": "1/7 gates PASS → completion=14%",
+    "team_size_minimum": "completion=14% → tier base 4; complexity=3 adjustment → team_size_minimum=3",
+    "go_to_market_timeline": "completion 14% → 6+ months",
+    "industry_vertical": "FLOYD.md not found",
+    "business_model": "FLOYD.md not found",
+    "technical_debt": "TODO=0, FIXME=0, XXX=0, HACK=0 across 16 sampled source files → debt_score=0",
+    "scalability_needs": "default: no scalability evidence found",
+    "target_users": "README.md first 5 lines",
+    "key_features": "README.md ## headings: 10",
+    "risks": "no critical risks detected"
+  },
+  "_critic_notes": [
+    "Round 1: all fields verified against live filesystem; no corrections.",
+    "Round 2: all fields verified against live filesystem; no corrections.",
+    "Round 3: all fields verified against live filesystem; no corrections."
+  ],
+  "_verified": true,
+  "_critic_rounds": 3,
+  "_last_verified": "2026-04-30T17:02:40-04:00",
+  "_verified_by": "Floyd"
+}
+

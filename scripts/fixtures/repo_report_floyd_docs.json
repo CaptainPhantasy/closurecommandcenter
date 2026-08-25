@@ -1,0 +1,55 @@
+{
+  "project_name": "Floyd Docs",
+  "completion_percentage": 0,
+  "tech_stack": [
+    "Unknown"
+  ],
+  "complexity_score": 1,
+  "team_size_minimum": 3,
+  "go_to_market_timeline": "6+ months",
+  "industry_vertical": "Unknown",
+  "business_model": "Unknown",
+  "technical_debt": 0,
+  "scalability_needs": "low",
+  "target_users": "Unknown",
+  "key_features": [],
+  "risks": [
+    "Most Beta-readiness gates unknown (7/7) — bootstrap incomplete",
+    "No git repository — no version control, no rollback"
+  ],
+  "gate_statuses": {
+    "build_run": "UNKNOWN",
+    "primary_journey": "UNKNOWN",
+    "automated_tests": "UNKNOWN",
+    "e2e_tests": "UNKNOWN",
+    "multi_min_human_sim": "UNKNOWN",
+    "security": "UNKNOWN",
+    "demo": "UNKNOWN"
+  },
+  "_evidence": {
+    "project_name": "basename of /Volumes/Storage/Floyd Docs → Floyd Docs",
+    "tech_stack": "no recognizable manifest at root",
+    "complexity_score": "src_files=0, max_depth=4, deps=0 → rubric score 1/10",
+    "gate_statuses": "all gates default UNKNOWN",
+    "completion_percentage": "0/7 gates PASS → completion=0%",
+    "team_size_minimum": "completion=0% → tier base 4; complexity=1 adjustment → team_size_minimum=3",
+    "go_to_market_timeline": "completion 0% → 6+ months",
+    "industry_vertical": "FLOYD.md found but no 'Project-Specific Context' section",
+    "business_model": "FLOYD.md found but no 'Project-Specific Context' section",
+    "technical_debt": "TODO=0, FIXME=0, XXX=0, HACK=0 across 0 sampled source files → debt_score=0",
+    "scalability_needs": "default: no scalability evidence found",
+    "target_users": "no FLOYD.md section or README.md found",
+    "key_features": "no features discovered",
+    "risks": ".git absent"
+  },
+  "_critic_notes": [
+    "Round 1: tech_stack=['Unknown'] — no manifest detected; downstream fields inherit Unknown",
+    "Round 2: tech_stack=['Unknown'] — no manifest detected; downstream fields inherit Unknown",
+    "Round 3: tech_stack=['Unknown'] — no manifest detected; downstream fields inherit Unknown"
+  ],
+  "_verified": false,
+  "_critic_rounds": 3,
+  "_last_verified": "2026-04-30T17:02:53-04:00",
+  "_verified_by": "Floyd"
+}
+

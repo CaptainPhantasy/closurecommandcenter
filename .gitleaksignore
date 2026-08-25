@@ -1,0 +1,6 @@
+# Public Chrome extension identity key; this is not a private signing key.
+modules/agent-browser/source/apps/agent/wxt.config.ts:generic-api-key:25
+# Vendored xterm enum names trigger the generic high-entropy detector.
+static/vendor/xterm.js:generic-api-key:1
+static/vendor/xterm-addon-webgl.js:generic-api-key:1
+

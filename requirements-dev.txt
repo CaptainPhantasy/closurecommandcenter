@@ -1,0 +1,10 @@
+# Development / test dependencies (in addition to requirements.txt)
+# Install: .venv/bin/pip install -r requirements-dev.txt
+pytest>=8.0
+pytest-asyncio>=0.23
+httpx>=0.27
+# Required for the WebSocket endpoints (/ws/{agent_id}, Dual Terminal sidepanel).
+# Without this, uvicorn rejects WebSocket upgrades with "Unsupported upgrade request".
+websockets>=12.0
+# playwright>=1.40   # uncomment if running tests/test_workflows_ui.py
+

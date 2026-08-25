@@ -1,0 +1,16 @@
+{
+  "capability": "buddy-telemetry",
+  "source_name": "Internal F.U.C.K.B.U.T.T. System — V1 read-only event/state spine",
+  "source_path": "native — built from BUILD-INSTRUCTIONS.md Phases 1-4",
+  "copied_at": "2026-05-20",
+  "source_revision": "native",
+  "copied_scope": ["modules/buddy-telemetry/"],
+  "status": "native Kernel module — V1 read-only, no mutation endpoints",
+  "dashboard_runtime": {
+    "route_prefix": "/api/buddy",
+    "api_prefix": "/api/buddy",
+    "public_port": 11527
+  },
+  "original_preservation_check": "original product at /Volumes/SanDisk1Tb/Floyds_Unified_Command_Kernal not modified"
+}
+
