@@ -46,6 +46,7 @@ describe("fetchJson helpers", () => {
   })
 
   it("fetchPerformance maps raw metrics to KernelPerformance", async () => {
+    // First sample → rate is 0 (no previous sample to diff against)
     mockFetch.mockReturnValue(mockResponse({
       cpu_user_s: 30.2,
       cpu_system_s: 15.0,
@@ -53,12 +54,22 @@ describe("fetchJson helpers", () => {
       running_agents: 2,
       timestamp: 1716192000,
     }))
+    const first = await fetchPerformance()
+    expect(first.data?.cpu_percent).toBe(0)
+    expect(first.data?.memory_mb).toBeCloseTo(512, 0)
+    expect(first.data?.active_agents).toBe(2)
+    expect(first.ref.status).toBe("ok")
 
-    const result = await fetchPerformance()
-    expect(result.data?.cpu_percent).toBeCloseTo(45.2, 1)
-    expect(result.data?.memory_mb).toBeCloseTo(512, 0)
-    expect(result.data?.active_agents).toBe(2)
-    expect(result.ref.status).toBe("ok")
+    // Second sample: Δcpu = 3.0 s over 10 s of wall time → 30%
+    mockFetch.mockReturnValue(mockResponse({
+      cpu_user_s: 32.2,
+      cpu_system_s: 16.0,
+      max_rss_kb: 524288,
+      running_agents: 2,
+      timestamp: 1716192010,
+    }))
+    const second = await fetchPerformance()
+    expect(second.data?.cpu_percent).toBeCloseTo(30, 1)
   })
 
   it("fetchPerformance returns null on fetch error", async () => {
@@ -120,7 +131,7 @@ describe("captureSnapshot", () => {
     const snap = await captureSnapshot()
     expect(snap.sessions.data).toHaveLength(1)
     expect(snap.agents.data).toHaveLength(1)
-    expect(snap.performance.data?.cpu_percent).toBeCloseTo(10, 0)
+    expect(snap.performance.data?.cpu_percent).toBe(0) // first sample: no rate yet
     expect(snap.health.data?.status).toBe("ok")
     expect(snap.captured_at).toBeTruthy()
   })

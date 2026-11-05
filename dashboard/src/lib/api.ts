@@ -80,6 +80,9 @@ export function fetchAgents() {
   return fetchJson<KernelAgent[]>("/agents")
 }
 
+/** Last sample of cumulative CPU seconds and server timestamp, used to compute a rate */
+let lastCpuSample: { cpu_s: number; timestamp: number } | null = null
+
 /** Normalize kernel /performance → KernelPerformance */
 export async function fetchPerformance() {
   const raw = await fetchJson<{
@@ -91,9 +94,18 @@ export async function fetchPerformance() {
   }>("/performance")
   if (raw.data) {
     const d = raw.data
+    const cpu_s = d.cpu_user_s + d.cpu_system_s
+    // The server reports cumulative getrusage seconds since process start, not a
+    // utilization rate. Derive percent from the delta between samples.
+    let cpu_percent = 0
+    if (lastCpuSample && d.timestamp > lastCpuSample.timestamp) {
+      const wall_s = d.timestamp - lastCpuSample.timestamp
+      cpu_percent = ((cpu_s - lastCpuSample.cpu_s) / wall_s) * 100
+    }
+    lastCpuSample = { cpu_s, timestamp: d.timestamp }
     return {
       data: {
-        cpu_percent: d.cpu_user_s + d.cpu_system_s,
+        cpu_percent,
         memory_mb: d.max_rss_kb / 1024,
         uptime_seconds: 0,
         active_sessions: 0,
