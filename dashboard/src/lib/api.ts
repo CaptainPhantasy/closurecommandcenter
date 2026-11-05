@@ -100,7 +100,10 @@ export async function fetchPerformance() {
     let cpu_percent = 0
     if (lastCpuSample && d.timestamp > lastCpuSample.timestamp) {
       const wall_s = d.timestamp - lastCpuSample.timestamp
-      cpu_percent = ((cpu_s - lastCpuSample.cpu_s) / wall_s) * 100
+      const delta = cpu_s - lastCpuSample.cpu_s
+      // A decreasing cumulative counter means the server restarted (getrusage
+      // reset to ~0); treat it as a reset and report 0 for this window.
+      cpu_percent = delta > 0 && wall_s >= 1 ? (delta / wall_s) * 100 : 0
     }
     lastCpuSample = { cpu_s, timestamp: d.timestamp }
     return {
