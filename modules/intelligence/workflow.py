@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import sqlite3
 import uuid
 from dataclasses import dataclass, field
@@ -226,6 +227,11 @@ def _persist_activity(
         conn = sqlite3.connect(str(_ACT_DB_PATH))
         try:
             conn.execute(
+                "CREATE TABLE IF NOT EXISTS activity_log ("
+                "id TEXT PRIMARY KEY, task_id TEXT, session_id TEXT, "
+                "message TEXT, category TEXT, meta TEXT, created_at REAL)"
+            )
+            conn.execute(
                 "INSERT INTO activity_log (id, task_id, session_id, message, category, meta, created_at) "
                 "VALUES (?, ?, ?, ?, ?, ?, ?)",
                 (entry_id, task_id, session_id, message, category, json.dumps(meta), datetime.now(timezone.utc).timestamp()),
@@ -233,9 +239,9 @@ def _persist_activity(
             conn.commit()
         finally:
             conn.close()
-    except Exception:
+    except Exception as exc:
         # Persistence failure must not break the service
-        pass
+        logging.getLogger(__name__).warning("activity persistence failed: %s", exc)
 
 
 def load_activities(task_id: str, limit: int = 100) -> list[dict[str, Any]]:
@@ -263,7 +269,8 @@ def load_activities(task_id: str, limit: int = 100) -> list[dict[str, Any]]:
             ]
         finally:
             conn.close()
-    except Exception:
+    except Exception as exc:
+        logging.getLogger(__name__).warning("activity load failed: %s", exc)
         return []
 
 # ── Workflow Service ───────────────────────────────────────────────────
