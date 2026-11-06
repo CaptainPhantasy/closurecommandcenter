@@ -418,6 +418,15 @@ main a { overflow-wrap: anywhere; }
 @media (max-width: 420px) {
  main .grid-cols-2 { grid-template-columns: minmax(0,1fr); }
 }
+/* Short landscape phones: keep every nav item and the collapse toggle in view */
+@media (min-width: 761px) and (max-height: 480px) {
+ .closure-sidebar > div:first-child { height: 40px; }
+ .closure-sidebar nav { padding-top: 4px; padding-bottom: 4px; gap: 0; }
+ .closure-sidebar > div:last-child { padding: 2px 6px; }
+}
+@media (min-width: 761px) and (max-height: 420px) {
+ .closure-sidebar > div:first-child { display: none; }
+}
 
 
 /* commercial-polish */
