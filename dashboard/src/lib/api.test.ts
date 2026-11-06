@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest"
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import {
   fetchSessions, fetchAgents, fetchPerformance, fetchHealth, connectEventStream, captureSnapshot,
   cpuPercentFromSample, resetCpuBaseline, MIN_CPU_WINDOW_S,
@@ -115,12 +115,44 @@ describe("fetchJson helpers", () => {
 })
 
 describe("connectEventStream", () => {
-  it("returns null when EventSource throws", () => {
-    vi.stubGlobal("EventSource", class {
-      constructor() { throw new Error("no SSE") }
-    })
-    const result = connectEventStream(vi.fn())
-    expect(result).toBeNull()
+  class FakeWebSocket {
+    static instances: FakeWebSocket[] = []
+    url: string
+    onmessage: ((e: { data: string }) => void) | null = null
+    onclose: (() => void) | null = null
+    onerror: (() => void) | null = null
+    closed = false
+    constructor(url: string) {
+      this.url = url
+      FakeWebSocket.instances.push(this)
+    }
+    close() { this.closed = true }
+  }
+
+  beforeEach(() => {
+    FakeWebSocket.instances = []
+    vi.stubGlobal("WebSocket", FakeWebSocket)
+  })
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it("re-emits server type/data and closes the socket on close()", () => {
+    const onEvent = vi.fn()
+    const handle = connectEventStream(onEvent)
+    expect(handle).not.toBeNull()
+    const socket = FakeWebSocket.instances[0]
+    expect(socket).toBeTruthy()
+    expect(socket.url).toContain("/ws/events")
+
+    socket.onmessage!({ data: JSON.stringify({ type: "session_started", data: { id: "s1" } }) })
+    expect(onEvent).toHaveBeenCalledTimes(1)
+    const emitted = onEvent.mock.calls[0][0] as MessageEvent
+    expect(emitted.type).toBe("session_started")
+    expect(JSON.parse(emitted.data as string)).toEqual({ type: "session_started", data: { id: "s1" } })
+
+    handle!.close()
+    expect(socket.closed).toBe(true)
   })
 })
 
