@@ -41,6 +41,27 @@ export const THEMES: { name: ThemeName; label: string }[] = [
   { name: "arctic-light", label: "Arctic Light" },
 ]
 
+export const SETTINGS_STORAGE_KEY = "ccc-settings"
+/** Key used by earlier dashboard builds; migrated once so saved preferences survive the rename. */
+export const LEGACY_SETTINGS_STORAGE_KEY = "fuckbutt-settings"
+
+/** Copy saved preferences from the legacy key to the current key before hydration. */
+export function migrateLegacySettings(storage: Storage | undefined = globalThis.localStorage): void {
+  if (!storage) return
+  try {
+    const legacy = storage.getItem(LEGACY_SETTINGS_STORAGE_KEY)
+    if (legacy === null) return
+    if (storage.getItem(SETTINGS_STORAGE_KEY) === null) {
+      storage.setItem(SETTINGS_STORAGE_KEY, legacy)
+    }
+    storage.removeItem(LEGACY_SETTINGS_STORAGE_KEY)
+  } catch {
+    // Storage can be unavailable (private mode, quota); fall back to defaults.
+  }
+}
+
+migrateLegacySettings()
+
 export const useSettings = create<SettingsState>()(
   persist(
     (set) => ({
@@ -56,7 +77,7 @@ export const useSettings = create<SettingsState>()(
       toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
       setSidebarCollapsed: (sidebarCollapsed) => set({ sidebarCollapsed }),
     }),
-    { name: "ccc-settings" },
+    { name: SETTINGS_STORAGE_KEY },
   ),
 )
 
