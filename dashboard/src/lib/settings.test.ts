@@ -62,6 +62,10 @@ describe("THEMES constant", () => {
       expect(t.name).toBeTruthy()
       expect(t.label).toBeTruthy()
     }
+    // Commercial labels — no cyberpunk / neon naming in the picker
+    const labels = THEMES.map((t) => t.label.toLowerCase())
+    for (const banned of ["vaporwave", "matrix", "neon", "cyber"]) {
+      expect(labels.join(" ")).not.toContain(banned)
+    }
   })
 })
-

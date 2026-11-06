@@ -12,7 +12,7 @@ export function SettingsPage() {
       <div>
         <h1 className="text-[var(--font-size-3xl)] font-bold tracking-tight">Settings</h1>
         <p className="text-[var(--font-size-sm)] text-muted-foreground mt-1">
-          Personalize your dashboard experience
+          Appearance, density, and motion preferences
         </p>
       </div>
 
@@ -106,7 +106,7 @@ export function SettingsPage() {
               >
                 <span className="capitalize font-medium">{s}</span>
                 <span className="text-xs opacity-70 mt-0.5 normal-case font-normal">
-                  {s === "pulse" ? "Animated glow" : s === "static" ? "Color only" : "Transition on change"}
+                  {s === "pulse" ? "Soft pulse" : s === "static" ? "Color only" : "Transition on change"}
                 </span>
               </Button>
             ))}
@@ -120,13 +120,13 @@ export function SettingsPage() {
 /** Renders a 5-color swatch for a theme */
 function ThemeSwatch({ theme }: { theme: ThemeName }) {
   const swatches: Record<ThemeName, string[]> = {
-    "slate-cyan": ["#0f172a", "#1e293b", "#334155", "#22d3ee", "#e2e8f0"],
-    "carbon-blue": ["#09090b", "#18181b", "#27272a", "#3b82f6", "#fafafa"],
-    "matrix-green": ["#0a0a0a", "#141414", "#262626", "#22c55e", "#d4d4d4"],
-    "navy-amber": ["#0c1222", "#162032", "#1e3048", "#f59e0b", "#e2e8f0"],
-    "vaporwave": ["#1a1033", "#241745", "#3b2766", "#e879f9", "#e8d5f5"],
-    "thermal": ["#0f0f0f", "#1c1917", "#292524", "#f97316", "#f5f5f4"],
-    "arctic-light": ["#f8fafc", "#ffffff", "#e2e8f0", "#0ea5e9", "#0f172a"],
+    "slate-cyan": ["#111923", "#1a2633", "#2b394a", "#bacdda", "#eef2f6"],
+    "carbon-blue": ["#111923", "#1a2633", "#2b394a", "#afc5dc", "#eef2f6"],
+    "matrix-green": ["#111923", "#1a2633", "#2b394a", "#b5c9bb", "#eef2f6"],
+    "navy-amber": ["#111923", "#1a2633", "#2b394a", "#d5bf98", "#eef2f6"],
+    "vaporwave": ["#111923", "#1a2633", "#2b394a", "#c7c2b9", "#eef2f6"],
+    "thermal": ["#111923", "#1a2633", "#2b394a", "#d5b6a4", "#eef2f6"],
+    "arctic-light": ["#f1f5f8", "#ffffff", "#e5ecf2", "#34566f", "#172534"],
   }
   const colors = swatches[theme] ?? swatches["slate-cyan"]
 
