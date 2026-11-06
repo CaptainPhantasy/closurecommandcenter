@@ -31,7 +31,7 @@ function generateLocalCandidates(snap: DashboardSnapshot): MemoryCandidate[] {
       if (s.status === "error") {
         candidates.push({
           candidate_id: `mc-${now.toFixed(0)}-${s.id}`,
-          summary: `Session '${s.agent}' entered error state`,
+          summary: `Session '${s.name ?? s.id}' entered error state`,
           category: "incident",
           source: snap.sessions.ref,
           evidence_snippet: `session_id=${s.id} status=error`,
@@ -41,7 +41,7 @@ function generateLocalCandidates(snap: DashboardSnapshot): MemoryCandidate[] {
       if (s.status === "stale") {
         candidates.push({
           candidate_id: `mc-${now.toFixed(0)}-${s.id}-stale`,
-          summary: `Session '${s.agent}' went stale`,
+          summary: `Session '${s.name ?? s.id}' went stale`,
           category: "incident",
           source: snap.sessions.ref,
           evidence_snippet: `session_id=${s.id} status=stale`,
