@@ -176,9 +176,11 @@ export function connectEventStream(
   let retryDelay = 1000
   const maxDelay = 30000
   let ws: WebSocket | null = null
+  let retryTimer: ReturnType<typeof setTimeout> | null = null
   let closed = false
 
   function connect(): WebSocket | null {
+    if (closed) return null
     try {
       ws = new WebSocket(url)
       ws.onmessage = (e) => {
@@ -201,7 +203,7 @@ export function connectEventStream(
         if (closed) return
         onError?.()
         retryDelay = Math.min(retryDelay * 2, maxDelay)
-        setTimeout(connect, retryDelay)
+        retryTimer = setTimeout(connect, retryDelay)
       }
       ws.onerror = () => {
         ws?.close()
@@ -216,6 +218,10 @@ export function connectEventStream(
   return {
     close() {
       closed = true
+      if (retryTimer !== null) {
+        clearTimeout(retryTimer)
+        retryTimer = null
+      }
       socket?.close()
     },
   }
