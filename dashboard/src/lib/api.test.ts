@@ -129,30 +129,98 @@ describe("connectEventStream", () => {
     close() { this.closed = true }
   }
 
+  function socketAt(i: number): FakeWebSocket {
+    const s = FakeWebSocket.instances[i]
+    if (!s) throw new Error(`no WebSocket #${i}`)
+    return s
+  }
+
+  // Restore only the WebSocket global this block installs, so the file-wide
+  // fetch stub used by captureSnapshot stays in place.
+  const originalWebSocket = globalThis.WebSocket
+
   beforeEach(() => {
     FakeWebSocket.instances = []
-    vi.stubGlobal("WebSocket", FakeWebSocket)
+    vi.useFakeTimers()
+    globalThis.WebSocket = FakeWebSocket as unknown as typeof WebSocket
   })
   afterEach(() => {
-    vi.unstubAllGlobals()
+    vi.useRealTimers()
+    globalThis.WebSocket = originalWebSocket
   })
 
   it("re-emits server type/data and closes the socket on close()", () => {
     const onEvent = vi.fn()
     const handle = connectEventStream(onEvent)
     expect(handle).not.toBeNull()
-    const socket = FakeWebSocket.instances[0]
-    expect(socket).toBeTruthy()
+    const socket = socketAt(0)
     expect(socket.url).toContain("/ws/events")
 
-    socket.onmessage!({ data: JSON.stringify({ type: "session_started", data: { id: "s1" } }) })
+    socket.onmessage?.({ data: JSON.stringify({ type: "session_started", data: { id: "s1" } }) })
     expect(onEvent).toHaveBeenCalledTimes(1)
-    const emitted = onEvent.mock.calls[0][0] as MessageEvent
+    const emitted = onEvent.mock.calls[0]?.[0] as MessageEvent
     expect(emitted.type).toBe("session_started")
     expect(JSON.parse(emitted.data as string)).toEqual({ type: "session_started", data: { id: "s1" } })
 
-    handle!.close()
+    handle?.close()
     expect(socket.closed).toBe(true)
+  })
+
+  it("returns null and schedules nothing when the WebSocket constructor throws", () => {
+    globalThis.WebSocket = class {
+      constructor() { throw new Error("no WebSocket") }
+    } as unknown as typeof WebSocket
+    const onError = vi.fn()
+    expect(connectEventStream(vi.fn(), onError)).toBeNull()
+    vi.advanceTimersByTime(60_000)
+    expect(onError).not.toHaveBeenCalled()
+  })
+
+  it("close() closes the current socket after a reconnect", () => {
+    const onError = vi.fn()
+    const handle = connectEventStream(vi.fn(), onError)
+    socketAt(0).onclose?.()
+    expect(onError).toHaveBeenCalledTimes(1)
+    vi.advanceTimersByTime(30_000)
+    expect(FakeWebSocket.instances).toHaveLength(2)
+    const replacement = socketAt(1)
+    expect(replacement.closed).toBe(false)
+
+    handle?.close()
+    expect(replacement.closed).toBe(true)
+  })
+
+  it("close() cancels a queued reconnect and ignores late events", () => {
+    const onEvent = vi.fn()
+    const handle = connectEventStream(onEvent)
+    const first = socketAt(0)
+    first.onclose?.() // reconnect queued
+    handle?.close()
+    vi.advanceTimersByTime(60_000)
+    expect(FakeWebSocket.instances).toHaveLength(1)
+
+    first.onmessage?.({ data: JSON.stringify({ type: "late" }) })
+    expect(onEvent).not.toHaveBeenCalled()
+  })
+
+  it("keeps retrying when a reconnect attempt throws", () => {
+    const handle = connectEventStream(vi.fn())
+    socketAt(0).onclose?.()
+    const Working = globalThis.WebSocket
+    let throws = true
+    globalThis.WebSocket = class {
+      constructor(url: string) {
+        if (throws) throw new Error("down")
+        return new Working(url)
+      }
+    } as unknown as typeof WebSocket
+    vi.advanceTimersByTime(30_000) // first retry throws, another is queued
+    expect(FakeWebSocket.instances).toHaveLength(1)
+    throws = false
+    vi.advanceTimersByTime(60_000)
+    expect(FakeWebSocket.instances).toHaveLength(2)
+    handle?.close()
+    expect(socketAt(1).closed).toBe(true)
   })
 })
 

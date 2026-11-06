@@ -179,42 +179,61 @@ export function connectEventStream(
   let retryTimer: ReturnType<typeof setTimeout> | null = null
   let closed = false
 
-  function connect(): WebSocket | null {
-    if (closed) return null
-    try {
-      ws = new WebSocket(url)
-      ws.onmessage = (e) => {
-        retryDelay = 1000
-        // Server /ws/events sends JSON like {"type": "session_started", ...};
-        // re-emit as a MessageEvent whose type is the server's event type so
-        // consumers keep reading event.type / event.data as before.
-        let eventType = "message"
-        let payload: string = typeof e.data === "string" ? e.data : ""
-        try {
-          const parsed = JSON.parse(payload)
-          if (parsed && typeof parsed.type === "string") eventType = parsed.type
-          payload = JSON.stringify(parsed)
-        } catch {
-          // not JSON — forward the raw string
-        }
-        onEvent(new MessageEvent(eventType, { data: payload }))
-      }
-      ws.onclose = () => {
-        if (closed) return
-        onError?.()
-        retryDelay = Math.min(retryDelay * 2, maxDelay)
-        retryTimer = setTimeout(connect, retryDelay)
-      }
-      ws.onerror = () => {
-        ws?.close()
-      }
-      return ws
-    } catch {
-      return null
-    }
+  function scheduleReconnect() {
+    if (closed || retryTimer !== null) return
+    onError?.()
+    retryDelay = Math.min(retryDelay * 2, maxDelay)
+    retryTimer = setTimeout(() => {
+      retryTimer = null
+      if (connect() === null) scheduleReconnect()
+    }, retryDelay)
   }
 
-  const socket = connect()
+  function connect(): WebSocket | null {
+    if (closed) return null
+    let socket: WebSocket
+    try {
+      socket = new WebSocket(url)
+    } catch {
+      ws = null
+      return null
+    }
+    ws = socket
+    socket.onmessage = (e) => {
+      if (closed || ws !== socket) return
+      retryDelay = 1000
+      // Server /ws/events sends JSON like {"type": "session_started", ...};
+      // re-emit as a MessageEvent whose type is the server's event type so
+      // consumers keep reading event.type / event.data as before.
+      let eventType = "message"
+      let payload: string = typeof e.data === "string" ? e.data : ""
+      try {
+        const parsed = JSON.parse(payload)
+        if (parsed && typeof parsed.type === "string") eventType = parsed.type
+        payload = JSON.stringify(parsed)
+      } catch {
+        // not JSON — forward the raw string
+      }
+      onEvent(new MessageEvent(eventType, { data: payload }))
+    }
+    socket.onclose = () => {
+      if (closed || ws !== socket) return
+      ws = null
+      scheduleReconnect()
+    }
+    socket.onerror = () => {
+      socket.close()
+    }
+    return socket
+  }
+
+  // Contract: null when the first WebSocket cannot be constructed (no
+  // background retries are left behind); otherwise a handle whose close()
+  // closes the *current* socket and cancels any pending reconnect.
+  if (connect() === null) {
+    closed = true
+    return null
+  }
   return {
     close() {
       closed = true
@@ -222,7 +241,9 @@ export function connectEventStream(
         clearTimeout(retryTimer)
         retryTimer = null
       }
-      socket?.close()
+      const current = ws
+      ws = null
+      current?.close()
     },
   }
 }
