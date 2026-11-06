@@ -166,36 +166,86 @@ export async function fetchHealth() {
   return { data: null, ref: raw.ref }
 }
 
-/** SSE connection for live events with automatic reconnection */
+/** Live event connection via the kernel WebSocket /ws/events, with automatic reconnection */
 export function connectEventStream(
   onEvent: (event: MessageEvent) => void,
   onError?: () => void,
-): EventSource | null {
-  const url = `${API_BASE}/events/stream`
+): { close(): void } | null {
+  const proto = window.location.protocol === "https:" ? "wss" : "ws"
+  const url = `${proto}://${window.location.host}/ws/events`
   let retryDelay = 1000
   const maxDelay = 30000
-  let es: EventSource | null = null
+  let ws: WebSocket | null = null
+  let retryTimer: ReturnType<typeof setTimeout> | null = null
+  let closed = false
 
-  function connect(): EventSource | null {
-    try {
-      es = new EventSource(url)
-      es.onmessage = (e) => {
-        retryDelay = 1000
-        onEvent(e)
-      }
-      es.onerror = () => {
-        es?.close()
-        onError?.()
-        retryDelay = Math.min(retryDelay * 2, maxDelay)
-        setTimeout(connect, retryDelay)
-      }
-      return es
-    } catch {
-      return null
-    }
+  function scheduleReconnect() {
+    if (closed || retryTimer !== null) return
+    onError?.()
+    retryDelay = Math.min(retryDelay * 2, maxDelay)
+    retryTimer = setTimeout(() => {
+      retryTimer = null
+      if (connect() === null) scheduleReconnect()
+    }, retryDelay)
   }
 
-  return connect()
+  function connect(): WebSocket | null {
+    if (closed) return null
+    let socket: WebSocket
+    try {
+      socket = new WebSocket(url)
+    } catch {
+      ws = null
+      return null
+    }
+    ws = socket
+    socket.onmessage = (e) => {
+      if (closed || ws !== socket) return
+      retryDelay = 1000
+      // Server /ws/events sends JSON like {"type": "session_started", ...};
+      // re-emit as a MessageEvent whose type is the server's event type so
+      // consumers keep reading event.type / event.data as before.
+      let eventType = "message"
+      let payload: string = typeof e.data === "string" ? e.data : ""
+      try {
+        const parsed = JSON.parse(payload)
+        if (parsed && typeof parsed.type === "string") eventType = parsed.type
+        payload = JSON.stringify(parsed)
+      } catch {
+        // not JSON — forward the raw string
+      }
+      onEvent(new MessageEvent(eventType, { data: payload }))
+    }
+    socket.onclose = () => {
+      if (closed || ws !== socket) return
+      ws = null
+      scheduleReconnect()
+    }
+    socket.onerror = () => {
+      socket.close()
+    }
+    return socket
+  }
+
+  // Contract: null when the first WebSocket cannot be constructed (no
+  // background retries are left behind); otherwise a handle whose close()
+  // closes the *current* socket and cancels any pending reconnect.
+  if (connect() === null) {
+    closed = true
+    return null
+  }
+  return {
+    close() {
+      closed = true
+      if (retryTimer !== null) {
+        clearTimeout(retryTimer)
+        retryTimer = null
+      }
+      const current = ws
+      ws = null
+      current?.close()
+    },
+  }
 }
 
 /** Poll all endpoints at interval, return combined snapshot */
