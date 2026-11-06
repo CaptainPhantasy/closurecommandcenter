@@ -62,6 +62,32 @@ describe("THEMES constant", () => {
       expect(t.name).toBeTruthy()
       expect(t.label).toBeTruthy()
     }
+    // Commercial labels — no cyberpunk / neon naming in the picker
+    const labels = THEMES.map((t) => t.label.toLowerCase())
+    for (const banned of ["vaporwave", "matrix", "neon", "cyber"]) {
+      expect(labels.join(" ")).not.toContain(banned)
+    }
   })
 })
 
+describe("legacy settings migration", () => {
+  beforeEach(() => localStorage.clear())
+
+  it("moves saved preferences from the legacy key to the current key", async () => {
+    const { migrateLegacySettings, LEGACY_SETTINGS_STORAGE_KEY, SETTINGS_STORAGE_KEY } = await import("./settings")
+    const saved = JSON.stringify({ state: { theme: "thermal", motion: "none" }, version: 0 })
+    localStorage.setItem(LEGACY_SETTINGS_STORAGE_KEY, saved)
+    migrateLegacySettings(localStorage)
+    expect(localStorage.getItem(SETTINGS_STORAGE_KEY)).toBe(saved)
+    expect(localStorage.getItem(LEGACY_SETTINGS_STORAGE_KEY)).toBeNull()
+  })
+
+  it("keeps existing current-key preferences over legacy ones", async () => {
+    const { migrateLegacySettings, LEGACY_SETTINGS_STORAGE_KEY, SETTINGS_STORAGE_KEY } = await import("./settings")
+    localStorage.setItem(SETTINGS_STORAGE_KEY, "current")
+    localStorage.setItem(LEGACY_SETTINGS_STORAGE_KEY, "legacy")
+    migrateLegacySettings(localStorage)
+    expect(localStorage.getItem(SETTINGS_STORAGE_KEY)).toBe("current")
+    expect(localStorage.getItem(LEGACY_SETTINGS_STORAGE_KEY)).toBeNull()
+  })
+})

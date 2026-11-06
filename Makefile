@@ -18,7 +18,7 @@ run: ## Start the Kernel server on port 11527 (or PORT env var)
 	python server.py
 
 dev: ## Start with auto-reload (development)
-	uvicorn server:app --host 0.0.0.0 --port 11527 --reload
+	uvicorn server:app --host $${CLOSURE_BIND_HOST:-127.0.0.1} --port 11527 --reload
 
 agent-browser: ## Launch Kernel in Floyd Vision (kiosk + CDP + extension)
 	cd modules/agent-browser/source && FLOYD_VISION_START_URL=http://127.0.0.1:11527 FLOYD_VISION_BROWSER_BINARY="$${FLOYD_VISION_BROWSER_BINARY:-/Applications/Google Chrome Beta.app/Contents/MacOS/Google Chrome Beta}" ./tools/dev/run.sh watch --manual

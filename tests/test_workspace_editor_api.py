@@ -158,7 +158,7 @@ class TestVault:
         # Set
         resp = client.post(
             "/api/vault/set",
-            json={"id": "test-e2e-key", "key": "sk-test-placeholder-value"},
+            json={"id": "test-e2e-key", "key": "vault-test-placeholder"},
         )
         assert resp.status_code == 200
         assert resp.json()["ok"] is True

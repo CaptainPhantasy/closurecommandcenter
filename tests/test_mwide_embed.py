@@ -27,6 +27,21 @@ def _ensure_server_up():  # type: ignore[no-redef]
     yield
 
 
+WORKSPACE_EDITOR = ROOT / "modules" / "workspace-editor"
+WORKSPACE_EDITOR_DIST = WORKSPACE_EDITOR / "source" / "dist"
+
+# modules/workspace-editor (the MWIDE copy) is vendored locally and not part of
+# the published repository. Build it with `make venv` when present.
+requires_workspace_editor = pytest.mark.skipif(
+    not WORKSPACE_EDITOR.is_dir(),
+    reason="modules/workspace-editor source not present in this checkout",
+)
+requires_workspace_editor_dist = pytest.mark.skipif(
+    not (WORKSPACE_EDITOR_DIST / "index.html").is_file(),
+    reason="workspace-editor dist not built (npm --prefix modules/workspace-editor/source run build)",
+)
+
+
 @pytest.fixture
 def client() -> TestClient:
     return TestClient(server.app)
@@ -67,6 +82,7 @@ def test_index_html_has_reload_button_and_fullscreen_link(
     assert 'href="/workspace-editor/"' in body
 
 
+@requires_workspace_editor_dist
 def test_workspace_editor_static_mount(client: TestClient) -> None:
     """The built frontend must be served at /workspace-editor/."""
     r = client.get("/workspace-editor/")
@@ -74,6 +90,7 @@ def test_workspace_editor_static_mount(client: TestClient) -> None:
     assert "html" in r.headers.get("content-type", "").lower()
 
 
+@requires_workspace_editor
 def test_workspace_editor_source_manifest_exists() -> None:
     """The source manifest must be present with copy metadata."""
     manifest = ROOT / "modules" / "workspace-editor" / "source-manifest.json"
@@ -86,6 +103,7 @@ def test_workspace_editor_source_manifest_exists() -> None:
     assert data["copied_at"] is not None
 
 
+@requires_workspace_editor_dist
 def test_workspace_editor_dist_built() -> None:
     """The Vite-built frontend must exist in the module dist/ directory."""
     dist_dir = ROOT / "modules" / "workspace-editor" / "source" / "dist"
@@ -94,6 +112,7 @@ def test_workspace_editor_dist_built() -> None:
     assert (dist_dir / "assets").is_dir(), "missing dist/assets/"
 
 
+@requires_workspace_editor
 def test_workspace_editor_source_copied() -> None:
     """The MWIDE source must be present in modules/workspace-editor/source/."""
     source_dir = ROOT / "modules" / "workspace-editor" / "source"
@@ -120,6 +139,7 @@ def test_original_mwide_untouched() -> None:
     assert "server.ts" not in result.stdout or "source/" not in result.stdout
 
 
+@requires_workspace_editor_dist
 def test_workspace_editor_assets_load(client: TestClient) -> None:
     """Built JS/CSS assets must be loadable from the /workspace-editor/ mount."""
     import re

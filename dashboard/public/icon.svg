@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title"><title id="title">Closure Command Center</title>
+<path fill="#1a2740" stroke="#8fa3b8" stroke-width="10" stroke-linejoin="round" d="M256 36L430 108V260c0 98-74 168-174 216C156 428 82 358 82 260V108Z"/>
+<path fill="#0f1a2c" d="M256 78L392 128V256c0 74-56 128-136 166C176 384 120 330 120 256V128Z"/>
+<circle cx="256" cy="248" r="92" fill="none" stroke="#c9d4e0" stroke-width="14"/>
+<circle cx="256" cy="248" r="58" fill="none" stroke="#3b6ea5" stroke-width="10"/>
+<path fill="none" stroke="#d6ad68" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" d="M318 196c-18-28-52-44-88-40-46 6-78 46-78 92s32 86 78 92c36 4 70-12 88-40"/>
+<path stroke="#c9d4e0" stroke-width="10" stroke-linecap="round" d="M256 142V168M256 328V354M162 248H188M324 248H350"/>
+<circle cx="256" cy="248" r="14" fill="#d6ad68"/>
+</svg>

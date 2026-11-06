@@ -19,7 +19,7 @@ function SettingsApplier({ children }: { children: React.ReactNode }) {
   }, [settings.theme, settings.density, settings.motion, settings.statusStyle])
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="closure-shell flex h-screen overflow-hidden">
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <CollapsedTopBar />

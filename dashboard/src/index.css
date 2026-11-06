@@ -42,229 +42,105 @@
   --font-mono: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
 }
 
-/* ══════════ THEME: Slate Cyan (default) ══════════ */
+/* Restrained product themes. Historical IDs preserve saved preferences. */
 :root,
 [data-theme="slate-cyan"] {
-  --bg: #0f172a;
-  --fg: #e2e8f0;
-  --card: #1e293b;
-  --card-fg: #e2e8f0;
-  --popover: #1e293b;
-  --popover-fg: #e2e8f0;
-  --primary: #22d3ee;
-  --primary-fg: #0f172a;
-  --secondary: #1e293b;
-  --secondary-fg: #e2e8f0;
-  --muted: #334155;
-  --muted-fg: #94a3b8;
-  --accent: #06b6d4;
-  --accent-fg: #0f172a;
-  --destructive: #ef4444;
-  --destructive-fg: #fef2f2;
-  --border: #334155;
-  --input: #334155;
-  --ring: #22d3ee;
-  --sidebar: #0c1322;
-  --sidebar-fg: #94a3b8;
-  --sidebar-border: #1e293b;
-  --status-healthy: #34d399;
-  --status-stale: #fbbf24;
-  --status-error: #f87171;
-  --status-critical: #fb7185;
-  --status-waiting: #60a5fa;
-  --radius: 0.625rem;
-}
-
-/* ══════════ THEME: Carbon Blue ══════════ */
-[data-theme="carbon-blue"] {
-  --bg: #09090b;
-  --fg: #fafafa;
-  --card: #18181b;
-  --card-fg: #fafafa;
-  --popover: #18181b;
-  --popover-fg: #fafafa;
-  --primary: #3b82f6;
-  --primary-fg: #09090b;
-  --secondary: #27272a;
-  --secondary-fg: #fafafa;
-  --muted: #27272a;
-  --muted-fg: #71717a;
-  --accent: #2563eb;
-  --accent-fg: #fafafa;
-  --destructive: #ef4444;
-  --destructive-fg: #fef2f2;
-  --border: #27272a;
-  --input: #27272a;
-  --ring: #3b82f6;
-  --sidebar: #09090b;
-  --sidebar-fg: #71717a;
-  --sidebar-border: #18181b;
-  --status-healthy: #22c55e;
-  --status-stale: #eab308;
-  --status-error: #ef4444;
-  --status-critical: #f43f5e;
-  --status-waiting: #3b82f6;
-  --radius: 0.5rem;
-}
-
-/* ══════════ THEME: Matrix Green ══════════ */
-[data-theme="matrix-green"] {
-  --bg: #0a0a0a;
-  --fg: #d4d4d4;
-  --card: #141414;
-  --card-fg: #d4d4d4;
-  --popover: #141414;
-  --popover-fg: #d4d4d4;
-  --primary: #22c55e;
-  --primary-fg: #0a0a0a;
-  --secondary: #1a1a1a;
-  --secondary-fg: #d4d4d4;
-  --muted: #262626;
-  --muted-fg: #737373;
-  --accent: #16a34a;
-  --accent-fg: #d4d4d4;
-  --destructive: #ef4444;
-  --destructive-fg: #fef2f2;
-  --border: #262626;
-  --input: #262626;
-  --ring: #22c55e;
-  --sidebar: #050505;
-  --sidebar-fg: #737373;
-  --sidebar-border: #1a1a1a;
-  --status-healthy: #22c55e;
-  --status-stale: #eab308;
-  --status-error: #ef4444;
-  --status-critical: #f43f5e;
-  --status-waiting: #38bdf8;
-  --radius: 0.375rem;
-}
-
-/* ══════════ THEME: Navy Amber ══════════ */
-[data-theme="navy-amber"] {
-  --bg: #0c1222;
-  --fg: #e2e8f0;
-  --card: #162032;
-  --card-fg: #e2e8f0;
-  --popover: #162032;
-  --popover-fg: #e2e8f0;
-  --primary: #f59e0b;
-  --primary-fg: #0c1222;
-  --secondary: #1e3048;
-  --secondary-fg: #e2e8f0;
-  --muted: #1e3048;
-  --muted-fg: #64748b;
-  --accent: #d97706;
-  --accent-fg: #0c1222;
-  --destructive: #ef4444;
-  --destructive-fg: #fef2f2;
-  --border: #1e3048;
-  --input: #1e3048;
-  --ring: #f59e0b;
-  --sidebar: #080e1a;
-  --sidebar-fg: #64748b;
-  --sidebar-border: #162032;
-  --status-healthy: #34d399;
-  --status-stale: #fbbf24;
-  --status-error: #f87171;
-  --status-critical: #fb7185;
-  --status-waiting: #60a5fa;
-  --radius: 0.625rem;
-}
-
-/* ══════════ THEME: Vaporwave ══════════ */
-[data-theme="vaporwave"] {
-  --bg: #1a1033;
-  --fg: #e8d5f5;
-  --card: #241745;
-  --card-fg: #e8d5f5;
-  --popover: #241745;
-  --popover-fg: #e8d5f5;
-  --primary: #e879f9;
-  --primary-fg: #1a1033;
-  --secondary: #2d1f52;
-  --secondary-fg: #e8d5f5;
-  --muted: #2d1f52;
-  --muted-fg: #a78bca;
-  --accent: #c026d3;
-  --accent-fg: #e8d5f5;
-  --destructive: #fb7185;
-  --destructive-fg: #1a1033;
-  --border: #3b2766;
-  --input: #3b2766;
-  --ring: #e879f9;
-  --sidebar: #130b24;
-  --sidebar-fg: #a78bca;
-  --sidebar-border: #241745;
-  --status-healthy: #34d399;
-  --status-stale: #fbbf24;
-  --status-error: #fb7185;
-  --status-critical: #f43f5e;
-  --status-waiting: #818cf8;
+  --bg: #111923; --fg: #eef2f6; --card: #1a2633; --card-fg: #eef2f6;
+  --popover: #1a2633; --popover-fg: #eef2f6;
+  --primary: #bacdda; --primary-fg: #111923;
+  --secondary: #2b394a; --secondary-fg: #eef2f6;
+  --muted: #2b394a; --muted-fg: #bfccdb;
+  --accent: #bacdda; --accent-fg: #111923;
+  --destructive: #e9a7a7; --destructive-fg: #111923;
+  --border: #718198; --input: #718198; --ring: #bacdda;
+  --sidebar: #15202c; --sidebar-fg: #bfccdb; --sidebar-border: #718198;
+  --status-healthy: #abd6bc; --status-stale: #e0c69a;
+  --status-error: #e9a7a7; --status-critical: #eeb0b0; --status-waiting: #b1c8e0;
   --radius: 0.75rem;
 }
-
-/* ══════════ THEME: Thermal ══════════ */
-[data-theme="thermal"] {
-  --bg: #0f0f0f;
-  --fg: #f5f5f4;
-  --card: #1c1917;
-  --card-fg: #f5f5f4;
-  --popover: #1c1917;
-  --popover-fg: #f5f5f4;
-  --primary: #f97316;
-  --primary-fg: #0f0f0f;
-  --secondary: #292524;
-  --secondary-fg: #f5f5f4;
-  --muted: #292524;
-  --muted-fg: #a8a29e;
-  --accent: #ea580c;
-  --accent-fg: #f5f5f4;
-  --destructive: #ef4444;
-  --destructive-fg: #fef2f2;
-  --border: #292524;
-  --input: #292524;
-  --ring: #f97316;
-  --sidebar: #0a0a0a;
-  --sidebar-fg: #a8a29e;
-  --sidebar-border: #1c1917;
-  --status-healthy: #4ade80;
-  --status-stale: #fb923c;
-  --status-error: #f87171;
-  --status-critical: #dc2626;
-  --status-waiting: #60a5fa;
-  --radius: 0.5rem;
+[data-theme="carbon-blue"] {
+  --bg: #111923; --fg: #eef2f6; --card: #1a2633; --card-fg: #eef2f6;
+  --popover: #1a2633; --popover-fg: #eef2f6;
+  --primary: #afc5dc; --primary-fg: #111923;
+  --secondary: #2b394a; --secondary-fg: #eef2f6;
+  --muted: #2b394a; --muted-fg: #bfccdb;
+  --accent: #afc5dc; --accent-fg: #111923;
+  --destructive: #e9a7a7; --destructive-fg: #111923;
+  --border: #718198; --input: #718198; --ring: #afc5dc;
+  --sidebar: #15202c; --sidebar-fg: #bfccdb; --sidebar-border: #718198;
+  --status-healthy: #abd6bc; --status-stale: #e0c69a;
+  --status-error: #e9a7a7; --status-critical: #eeb0b0; --status-waiting: #b1c8e0;
+  --radius: 0.75rem;
 }
-
-/* ══════════ THEME: Arctic Light ══════════ */
+[data-theme="matrix-green"] {
+  --bg: #111923; --fg: #eef2f6; --card: #1a2633; --card-fg: #eef2f6;
+  --popover: #1a2633; --popover-fg: #eef2f6;
+  --primary: #b5c9bb; --primary-fg: #111923;
+  --secondary: #2b394a; --secondary-fg: #eef2f6;
+  --muted: #2b394a; --muted-fg: #bfccdb;
+  --accent: #b5c9bb; --accent-fg: #111923;
+  --destructive: #e9a7a7; --destructive-fg: #111923;
+  --border: #718198; --input: #718198; --ring: #b5c9bb;
+  --sidebar: #15202c; --sidebar-fg: #bfccdb; --sidebar-border: #718198;
+  --status-healthy: #abd6bc; --status-stale: #e0c69a;
+  --status-error: #e9a7a7; --status-critical: #eeb0b0; --status-waiting: #b1c8e0;
+  --radius: 0.75rem;
+}
+[data-theme="navy-amber"] {
+  --bg: #111923; --fg: #eef2f6; --card: #1a2633; --card-fg: #eef2f6;
+  --popover: #1a2633; --popover-fg: #eef2f6;
+  --primary: #d5bf98; --primary-fg: #111923;
+  --secondary: #2b394a; --secondary-fg: #eef2f6;
+  --muted: #2b394a; --muted-fg: #bfccdb;
+  --accent: #d5bf98; --accent-fg: #111923;
+  --destructive: #e9a7a7; --destructive-fg: #111923;
+  --border: #718198; --input: #718198; --ring: #d5bf98;
+  --sidebar: #15202c; --sidebar-fg: #bfccdb; --sidebar-border: #718198;
+  --status-healthy: #abd6bc; --status-stale: #e0c69a;
+  --status-error: #e9a7a7; --status-critical: #eeb0b0; --status-waiting: #b1c8e0;
+  --radius: 0.75rem;
+}
+[data-theme="vaporwave"] {
+  --bg: #111923; --fg: #eef2f6; --card: #1a2633; --card-fg: #eef2f6;
+  --popover: #1a2633; --popover-fg: #eef2f6;
+  --primary: #c7c2b9; --primary-fg: #111923;
+  --secondary: #2b394a; --secondary-fg: #eef2f6;
+  --muted: #2b394a; --muted-fg: #bfccdb;
+  --accent: #c7c2b9; --accent-fg: #111923;
+  --destructive: #e9a7a7; --destructive-fg: #111923;
+  --border: #718198; --input: #718198; --ring: #c7c2b9;
+  --sidebar: #15202c; --sidebar-fg: #bfccdb; --sidebar-border: #718198;
+  --status-healthy: #abd6bc; --status-stale: #e0c69a;
+  --status-error: #e9a7a7; --status-critical: #eeb0b0; --status-waiting: #b1c8e0;
+  --radius: 0.75rem;
+}
+[data-theme="thermal"] {
+  --bg: #111923; --fg: #eef2f6; --card: #1a2633; --card-fg: #eef2f6;
+  --popover: #1a2633; --popover-fg: #eef2f6;
+  --primary: #d5b6a4; --primary-fg: #111923;
+  --secondary: #2b394a; --secondary-fg: #eef2f6;
+  --muted: #2b394a; --muted-fg: #bfccdb;
+  --accent: #d5b6a4; --accent-fg: #111923;
+  --destructive: #e9a7a7; --destructive-fg: #111923;
+  --border: #718198; --input: #718198; --ring: #d5b6a4;
+  --sidebar: #15202c; --sidebar-fg: #bfccdb; --sidebar-border: #718198;
+  --status-healthy: #abd6bc; --status-stale: #e0c69a;
+  --status-error: #e9a7a7; --status-critical: #eeb0b0; --status-waiting: #b1c8e0;
+  --radius: 0.75rem;
+}
 [data-theme="arctic-light"] {
-  --bg: #f8fafc;
-  --fg: #0f172a;
-  --card: #ffffff;
-  --card-fg: #0f172a;
-  --popover: #ffffff;
-  --popover-fg: #0f172a;
-  --primary: #0ea5e9;
-  --primary-fg: #ffffff;
-  --secondary: #f1f5f9;
-  --secondary-fg: #0f172a;
-  --muted: #f1f5f9;
-  --muted-fg: #64748b;
-  --accent: #0284c7;
-  --accent-fg: #ffffff;
-  --destructive: #ef4444;
-  --destructive-fg: #ffffff;
-  --border: #e2e8f0;
-  --input: #e2e8f0;
-  --ring: #0ea5e9;
-  --sidebar: #f1f5f9;
-  --sidebar-fg: #64748b;
-  --sidebar-border: #e2e8f0;
-  --status-healthy: #16a34a;
-  --status-stale: #ca8a04;
-  --status-error: #dc2626;
-  --status-critical: #be123c;
-  --status-waiting: #2563eb;
-  --radius: 0.625rem;
+  --bg: #f1f5f8; --fg: #172534; --card: #ffffff; --card-fg: #172534;
+  --popover: #ffffff; --popover-fg: #172534;
+  --primary: #34566f; --primary-fg: #ffffff;
+  --secondary: #e5ecf2; --secondary-fg: #172534;
+  --muted: #e5ecf2; --muted-fg: #42556b;
+  --accent: #34566f; --accent-fg: #ffffff;
+  --destructive: #983b39; --destructive-fg: #ffffff;
+  --border: #7b8b9b; --input: #7b8b9b; --ring: #34566f;
+  --sidebar: #e5ecf2; --sidebar-fg: #42556b; --sidebar-border: #7b8b9b;
+  --status-healthy: #306546; --status-stale: #785723;
+  --status-error: #983b39; --status-critical: #8e2d31; --status-waiting: #34566f;
+  --radius: 0.75rem;
 }
 
 /* ═══════════════ DENSITY SYSTEM ═══════════════ */
@@ -364,13 +240,13 @@ body {
 
 /* Status indicator animations */
 @keyframes pulse-glow {
-  0%, 100% { opacity: 1; box-shadow: 0 0 4px currentColor; }
-  50% { opacity: 0.6; box-shadow: 0 0 8px currentColor; }
+  0%, 100% { opacity: 1;  }
+  50% { opacity: 0.6;  }
 }
 
 @keyframes pulse-glow-fast {
-  0%, 100% { opacity: 1; box-shadow: 0 0 6px currentColor; }
-  50% { opacity: 0.4; box-shadow: 0 0 12px currentColor; }
+  0%, 100% { opacity: 1;  }
+  50% { opacity: 0.4;  }
 }
 
 .status-pulse-slow {
@@ -516,3 +392,48 @@ body {
 .slide-in-from-left-2 { --tw-enter-translate-x: -0.5rem; }
 .slide-in-from-right-2 { --tw-enter-translate-x: 0.5rem; }
 
+
+/* Keep content and navigation in normal flow on compact and short screens. */
+html, body, #root { margin: 0; min-height: 100%; }
+button, a[aria-current], input, select { min-height: 44px; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--ring); outline-offset: 3px; }
+.closure-shell { height: 100dvh; }
+.closure-sidebar nav a { min-height: 44px; }
+.closure-sidebar { min-width: 56px; }
+main { overflow-wrap: anywhere; }
+main .truncate { white-space: normal; overflow: visible; text-overflow: clip; }
+main .flex { min-width: 0; }
+main a { overflow-wrap: anywhere; }
+@media (max-width: 760px) {
+ .closure-shell { height: auto; min-height: 100dvh; flex-direction: column; overflow: visible; }
+ .closure-sidebar { width: 100% !important; height: auto; overflow: visible; border-right: 0; border-bottom: 1px solid var(--border); }
+ .closure-sidebar > div:first-child { min-height: 64px; }
+ .closure-sidebar nav { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 6px; overflow: visible; padding: 12px; }
+ .closure-sidebar nav a { justify-content: flex-start; padding: 10px; }
+ .closure-sidebar nav a span { white-space: normal; overflow: visible; }
+ .closure-shell > div { overflow: visible; }
+ .closure-shell main { padding: 20px; overflow: visible; }
+ .closure-sidebar > div:last-child { padding: 8px 12px; }
+}
+@media (max-width: 420px) {
+ main .grid-cols-2 { grid-template-columns: minmax(0,1fr); }
+}
+/* Short landscape phones: keep every nav item and the collapse toggle in view */
+@media (min-width: 761px) and (max-height: 480px) {
+ .closure-sidebar > div:first-child { height: 40px; }
+ .closure-sidebar nav { padding-top: 4px; padding-bottom: 4px; gap: 0; }
+ .closure-sidebar > div:last-child { padding: 2px 6px; }
+}
+@media (min-width: 761px) and (max-height: 420px) {
+ .closure-sidebar > div:first-child { display: none; }
+}
+
+
+/* commercial-polish */
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+button, [role="button"], a.nav-link {
+  min-height: 44px;
+}

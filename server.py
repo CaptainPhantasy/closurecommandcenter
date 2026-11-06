@@ -1030,6 +1030,42 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+# ---------------------------------------------------------------------------
+# Loopback-only mutations (ops gate). State-changing HTTP methods are refused
+# from non-loopback peers unless CLOSURE_ALLOW_REMOTE_MUTATIONS=1 is set, so a
+# deliberate non-loopback bind cannot silently expose write/exec endpoints.
+# ---------------------------------------------------------------------------
+import ipaddress as _ipaddress_guard
+from fastapi.responses import JSONResponse as _GuardJSONResponse
+
+_MUTATING_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
+_LOCAL_TEST_PEERS = frozenset({"testclient", "testserver"})
+
+
+def _peer_is_loopback(host: str | None) -> bool:
+    if not host:
+        return False
+    if host in _LOCAL_TEST_PEERS or host == "localhost":
+        return True
+    try:
+        return _ipaddress_guard.ip_address(host.split("%", 1)[0]).is_loopback
+    except ValueError:
+        return False
+
+
+@app.middleware("http")
+async def _loopback_only_mutations(request: Request, call_next):
+    if (
+        request.method in _MUTATING_METHODS
+        and os.environ.get("CLOSURE_ALLOW_REMOTE_MUTATIONS") != "1"
+        and not _peer_is_loopback(request.client.host if request.client else None)
+    ):
+        return _GuardJSONResponse(
+            status_code=403,
+            content={"detail": "mutations are restricted to loopback clients"},
+        )
+    return await call_next(request)
+
 # LLM-First API layer (progressive disclosure design)
 from llm_api import llm_router
 
@@ -1127,7 +1163,8 @@ async def we_fs_list(path: str = "", showHidden: str = "true") -> dict:
     if dir_path == "/Volumes":
         items = []
         try:
-            for entry in sorted(os.listdir("/Volumes")):
+            volume_entries = sorted(os.listdir("/Volumes")) if os.path.isdir("/Volumes") else []
+            for entry in volume_entries:
                 full = str(_PathLibWE("/Volumes") / entry)
                 denied = any(
                     full == r or full.startswith(r + "/") for r in _WE_DENY_ROOTS
@@ -3963,9 +4000,24 @@ async def top_six_active():
 import subprocess as _subprocess_we
 
 
+# Same volumes as _DRIVES, searched Storage-first as before.
+_DEFAULT_PROJECT_ROOTS = tuple(str(d) for d in reversed(_DRIVES))
+
+
+def _project_roots() -> list[str]:
+    """Project search roots: CLOSURE_PROJECT_ROOTS (os.pathsep-separated) or
+    the macOS volume defaults. Roots that do not exist on this host are
+    skipped, so Linux hosts without /Volumes get a clean 404 instead of a 500."""
+    raw = os.environ.get("CLOSURE_PROJECT_ROOTS", "")
+    roots = [r for r in raw.split(os.pathsep) if r] or list(_DEFAULT_PROJECT_ROOTS)
+    return [r for r in roots if os.path.isdir(r)]
+
+
 def _find_project_dir(name: str) -> str | None:
     """Find a project directory by name across known roots."""
-    for root in ["/Volumes/Storage", "/Volumes/SanDisk1Tb"]:
+    if not name or name in (".", "..") or "/" in name or os.sep in name:
+        return None
+    for root in _project_roots():
         candidate = os.path.join(root, name)
         if os.path.isdir(candidate):
             return candidate
@@ -4787,4 +4839,9 @@ async def serve_index():
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 11527)))
+    # Loopback-only by default; set CLOSURE_BIND_HOST explicitly to expose it.
+    uvicorn.run(
+        app,
+        host=os.environ.get("CLOSURE_BIND_HOST", "127.0.0.1"),
+        port=int(os.environ.get("PORT", 11527)),
+    )

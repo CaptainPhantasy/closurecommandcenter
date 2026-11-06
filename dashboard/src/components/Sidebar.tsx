@@ -55,17 +55,17 @@ export function Sidebar() {
         initial={false}
         animate={{ width: collapsed ? 56 : 220 }}
         transition={motionEnabled ? SPRING_GENTLE : { duration: 0 }}
-        className="h-screen flex flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground shrink-0 overflow-hidden relative"
+        className="closure-sidebar h-screen flex flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground shrink-0 overflow-hidden relative"
       >
         {/* Brand */}
         <div className="flex items-center gap-2 px-3 h-14 border-b border-sidebar-border shrink-0">
           {!collapsed && (
             <span className="text-sm font-bold tracking-tight text-primary whitespace-nowrap">
-              F.U.C.K.B.U.T.T.
+              Closure Command
             </span>
           )}
           {collapsed && (
-            <span className="text-xs font-bold text-primary mx-auto">F</span>
+            <img src="/favicon.svg" alt="" width="22" height="22" className="mx-auto" />
           )}
         </div>
 
@@ -77,10 +77,11 @@ export function Sidebar() {
             const link = (
               <NavLink
                 key={to}
+                aria-label={label}
                 to={to}
                 className={cn(
                   "flex items-center gap-2.5 rounded-md text-sm transition-colors outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                  collapsed ? "justify-center px-0 py-2" : "px-2.5 py-1.5",
+                  collapsed ? "justify-center min-h-[44px] px-0 py-2" : "min-h-[44px] px-2.5 py-2",
                   isActive
                     ? "bg-primary/10 text-primary font-medium"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
@@ -156,7 +157,7 @@ export function CollapsedTopBar() {
         size="icon"
         onClick={toggleSidebar}
         aria-label="Open sidebar"
-        className="h-7 w-7"
+        className="h-11 w-11 min-h-[44px] min-w-[44px]"
       >
         <PanelLeftOpen size={14} />
       </Button>

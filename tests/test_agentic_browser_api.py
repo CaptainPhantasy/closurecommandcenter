@@ -1,4 +1,6 @@
 import json
+import shlex
+import sys
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
@@ -61,7 +63,7 @@ def test_job_preview_browser_deployment_quality_contract(tmp_path):
 
     job = client.post(
         f"/api/v1/workspaces/{workspace['id']}/jobs",
-        json={"command": "python -c 'print(42)'", "timeoutMs": 30000},
+        json={"command": f"{shlex.quote(sys.executable)} -c 'print(42)'", "timeoutMs": 30000},
     )
     assert job.status_code == 202, job.text
     job_id = job.json()["job"]["id"]
@@ -94,14 +96,14 @@ def test_job_preview_browser_deployment_quality_contract(tmp_path):
 
     deployment = client.post(
         f"/api/v1/workspaces/{workspace['id']}/deployments",
-        json={"provider": "static", "environment": "preview", "buildCommand": "python -c 'print(ready)'", "outputDirectory": "."},
+        json={"provider": "static", "environment": "preview", "buildCommand": f"{shlex.quote(sys.executable)} -c 'print(\"ready\")'", "outputDirectory": "."},
     )
     assert deployment.status_code == 202
     assert deployment.json()["deployment"]["status"] in {"queued", "building", "ready"}
 
     gate = client.post(
         f"/api/v1/workspaces/{workspace['id']}/quality-gates",
-        json={"gates": [{"type": "command", "name": "smoke", "command": "python -c 'print(42)'"}]},
+        json={"gates": [{"type": "command", "name": "smoke", "command": f"{shlex.quote(sys.executable)} -c 'print(42)'"}]},
     )
     assert gate.status_code == 202
     gate_id = gate.json()["run"]["id"]
