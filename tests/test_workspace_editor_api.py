@@ -157,7 +157,8 @@ class TestVault:
     def test_vault_set_and_delete(self, client):
         # Set
         resp = client.post(
-            "/api/vault/set", json={"id": "test-e2e-key", "key": "sk-test"}
+            "/api/vault/set",
+            json={"id": "test-e2e-key", "key": "sk-test-placeholder-value"},
         )
         assert resp.status_code == 200
         assert resp.json()["ok"] is True
@@ -240,4 +241,3 @@ class TestGitProxy:
     def test_git_proxy_blocks_ipv6_private(self, client):
         resp = client.get("/api/git-proxy/http://[fc00::1]/repo")
         assert resp.status_code == 403
-
