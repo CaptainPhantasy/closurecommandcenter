@@ -23,9 +23,11 @@ export function AgentsSessions() {
 
   useEffect(() => { refresh() }, [refresh])
 
-  const filtered = (sessions.data ?? []).filter((s) =>
-    !filter || s.agent.toLowerCase().includes(filter.toLowerCase()) || s.id.toLowerCase().includes(filter.toLowerCase()),
-  )
+  const filtered = (sessions.data ?? []).filter((s) => {
+    if (!filter) return true
+    const label = (s.name ?? s.id).toLowerCase()
+    return label.includes(filter.toLowerCase()) || s.id.toLowerCase().includes(filter.toLowerCase())
+  })
 
   return (
     <div className="space-y-[var(--spacing-section)]">
@@ -73,7 +75,7 @@ export function AgentsSessions() {
                 <CardContent className="flex items-center gap-3 px-[var(--spacing-card)] py-2">
                   <StatusBadge status={mapStatus(s.status)} showDot />
                   <div className="flex-1 min-w-0">
-                    <div className="text-[var(--font-size-base)] font-medium truncate">{s.agent}</div>
+                    <div className="text-[var(--font-size-base)] font-medium truncate">{s.name ?? s.id}</div>
                     <div className="text-[var(--font-size-sm)] text-muted-foreground truncate font-mono tabular-nums">
                       {s.id}{s.command ? ` · ${s.command}` : ""}
                     </div>

@@ -3,7 +3,7 @@ import type { SessionState, AgentState } from "./schema"
 /** Kernel response shapes — matches actual server.py endpoints */
 export interface KernelSession {
   id: string
-  agent: string
+  name: string
   status: string
   cwd?: string
   command?: string
