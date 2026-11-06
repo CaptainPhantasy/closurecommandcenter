@@ -80,6 +80,49 @@ export function fetchAgents() {
   return fetchJson<KernelAgent[]>("/agents")
 }
 
+/**
+ * CPU rate state. The server reports cumulative getrusage seconds (each counter
+ * rounded to 0.01 s) plus its wall-clock timestamp, so utilisation is derived
+ * from the delta between a baseline sample and the newest one.
+ */
+/** Minimum window before a rate is computed: two 0.01 s roundings stay within ~1%. */
+export const MIN_CPU_WINDOW_S = 2
+let cpuBaseline: { cpu_s: number; timestamp: number } | null = null
+let newestCpuTimestamp = -Infinity
+let lastCpuPercent = 0
+
+/** Forget the CPU baseline (used by tests and when the dashboard reconnects). */
+export function resetCpuBaseline() {
+  cpuBaseline = null
+  newestCpuTimestamp = -Infinity
+  lastCpuPercent = 0
+}
+
+/**
+ * Turn a cumulative CPU sample into a utilisation percentage.
+ * - Out-of-order responses (timestamp not newer than the newest seen) never
+ *   touch the baseline; they report the last computed rate.
+ * - A counter that goes backwards means the server process restarted, so the
+ *   baseline is reset and 0 is reported for that window.
+ * - Windows shorter than MIN_CPU_WINDOW_S keep the older baseline (so rounding
+ *   can't be amplified) and report the last computed rate.
+ */
+export function cpuPercentFromSample(cpu_s: number, timestamp: number): number {
+  if (!Number.isFinite(cpu_s) || !Number.isFinite(timestamp)) return lastCpuPercent
+  if (timestamp <= newestCpuTimestamp) return lastCpuPercent
+  newestCpuTimestamp = timestamp
+  if (!cpuBaseline || cpu_s < cpuBaseline.cpu_s) {
+    cpuBaseline = { cpu_s, timestamp }
+    lastCpuPercent = 0
+    return 0
+  }
+  const wall_s = timestamp - cpuBaseline.timestamp
+  if (wall_s < MIN_CPU_WINDOW_S) return lastCpuPercent
+  lastCpuPercent = Math.max(0, ((cpu_s - cpuBaseline.cpu_s) / wall_s) * 100)
+  cpuBaseline = { cpu_s, timestamp }
+  return lastCpuPercent
+}
+
 /** Normalize kernel /performance → KernelPerformance */
 export async function fetchPerformance() {
   const raw = await fetchJson<{
@@ -91,9 +134,10 @@ export async function fetchPerformance() {
   }>("/performance")
   if (raw.data) {
     const d = raw.data
+    const cpu_percent = cpuPercentFromSample(d.cpu_user_s + d.cpu_system_s, d.timestamp)
     return {
       data: {
-        cpu_percent: d.cpu_user_s + d.cpu_system_s,
+        cpu_percent,
         memory_mb: d.max_rss_kb / 1024,
         uptime_seconds: 0,
         active_sessions: 0,
