@@ -18,8 +18,8 @@ function snapshot(overrides: Partial<DashboardSnapshot> = {}): DashboardSnapshot
 	return {
 		sessions: {
 			data: [
-				{ id: "s1", agent: "floyd", status: "running", cwd: "/tmp" },
-				{ id: "s2", agent: "floyd", status: "error" },
+				{ id: "s1", name: "floyd", status: "running", cwd: "/tmp" },
+				{ id: "s2", name: "floyd", status: "error" },
 			],
 			ref: { url: "/api/aterm/status", fetched_at: "2026-07-13T00:00:00Z", status: "ok" },
 		},
