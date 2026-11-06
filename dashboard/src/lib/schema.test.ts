@@ -5,18 +5,18 @@ describe("schema types compile and constrain", () => {
   it("KernelSession has required fields", () => {
     const session: KernelSession = {
       id: "s-001",
-      agent: "claude",
+      name: "claude",
       status: "running",
     }
     expect(session.id).toBe("s-001")
-    expect(session.agent).toBe("claude")
+    expect(session.name).toBe("claude")
     expect(session.status).toBe("running")
   })
 
   it("KernelSession allows optional fields", () => {
     const session: KernelSession = {
       id: "s-002",
-      agent: "gpt",
+      name: "gpt",
       status: "stopped",
       cwd: "/tmp",
       pid: 12345,
@@ -65,4 +65,3 @@ describe("schema types compile and constrain", () => {
     expect(["ok", "stale", "error"]).toContain(ref.status)
   })
 })
-
