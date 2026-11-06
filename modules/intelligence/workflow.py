@@ -371,24 +371,24 @@ class WorkflowService:
                      meta: dict[str, Any] | None = None) -> None:
         task = self._tasks.get(task_id)
         if task:
-                    entry = ActivityEntry(
-                        id=_uid(),
-                        timestamp=_now_utc(),
-                        message=message,
-                        category=category,
-                        meta=meta or {},
-                    )
-                    task.activities.append(entry)
-                    # Persist to SQLite (fire-and-forget)
-                    _persist_activity(
-                        task_id=task_id,
-                        session_id=task.session_id,
-                        entry_id=entry.id,
-                        timestamp=entry.timestamp,
-                        message=message,
-                        category=category.value,
-                        meta=meta or {},
-                    )
+            entry = ActivityEntry(
+                id=_uid(),
+                timestamp=_now_utc(),
+                message=message,
+                category=category,
+                meta=meta or {},
+            )
+            task.activities.append(entry)
+            # Persist to SQLite (fire-and-forget)
+            _persist_activity(
+                task_id=task_id,
+                session_id=task.session_id,
+                entry_id=entry.id,
+                timestamp=entry.timestamp,
+                message=message,
+                category=category.value,
+                meta=meta or {},
+            )
 
     # ── User-in-the-Loop ───────────────────────────────────────────
 
