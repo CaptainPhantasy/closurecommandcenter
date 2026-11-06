@@ -37,3 +37,9 @@ def artifacts_dir(request) -> str:
     target.mkdir(parents=True, exist_ok=True)
     return str(target)
 
+
+
+def pytest_configure(config):
+    config.addinivalue_line(
+        "markers", "live_server: needs the Kernel server running at TCC_BASE_URL (skipped when down)"
+    )

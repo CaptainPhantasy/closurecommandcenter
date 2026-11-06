@@ -1,6 +1,16 @@
 from pathlib import Path
 
-MCP_SERVER = Path("modules/agent-execution/source/src/mcp/server.ts")
+import pytest
+
+ROOT = Path(__file__).resolve().parent.parent
+MCP_SERVER = ROOT / "modules" / "agent-execution" / "source" / "src" / "mcp" / "server.ts"
+
+# The ATerm MCP adapter (modules/agent-execution) is vendored locally and is
+# not part of the published repository; skip instead of failing when absent.
+pytestmark = pytest.mark.skipif(
+    not MCP_SERVER.is_file(),
+    reason="modules/agent-execution MCP adapter source not present in this checkout",
+)
 
 
 def test_mcp_defaults_to_kernel_port_11527():

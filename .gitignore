@@ -56,3 +56,7 @@ test-screenshots/
 # Generated local development binaries
 modules/agent-browser/source/tools/dev/browseros-dev
 
+
+# Kernel runtime state written next to server.py
+/agents.json
+/state.json
